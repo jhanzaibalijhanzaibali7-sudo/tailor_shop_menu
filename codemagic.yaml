@@ -12,6 +12,12 @@
           flutter create . --project-name tailor_shop_manager
           rm -f test/widget_test.dart
 
+          if [ -f android/app/build.gradle.kts ]; then
+            sed -i 's/compileSdk = flutter.compileSdkVersion/compileSdk = 36/' android/app/build.gradle.kts
+          elif [ -f android/app/build.gradle ]; then
+            sed -i 's/compileSdk flutter.compileSdkVersion/compileSdk 36/' android/app/build.gradle
+          fi
+
       - name: Apply platform configuration
         script: |
           dart run tool/apply_platform_config.dart
