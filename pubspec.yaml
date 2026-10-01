@@ -1,0 +1,32 @@
+name: tailor_shop_manager
+description: Offline-first Sindhi/English tailor shop management app.
+publish_to: "none"
+version: 1.2.0+5
+
+environment:
+  sdk: ">=3.4.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  sqflite: ^2.3.3+1
+  path: ^1.9.0
+  image_picker: ^1.1.2
+  speech_to_text: ^7.0.0
+  shared_preferences: ^2.3.0
+  path_provider: ^2.1.4
+  file_picker: ^8.1.2
+  share_plus: ^10.0.2
+  # flutter_localizations pins the exact intl version for each Flutter SDK,
+  # so "any" lets pub pick the one that matches your installed Flutter.
+  intl: any
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
