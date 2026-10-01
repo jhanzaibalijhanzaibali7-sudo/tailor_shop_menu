@@ -1,0 +1,35 @@
+workflows:
+  tailor_shop_android:
+    name: Tailor Shop Android
+    max_build_duration: 60
+
+    environment:
+      flutter: stable
+
+    scripts:
+      - name: Create Flutter platform files
+        script: |
+          flutter create . --project-name tailor_shop_manager
+
+      - name: Apply platform configuration
+        script: |
+          dart run tool/apply_platform_config.dart
+
+      - name: Get Flutter dependencies
+        script: |
+          flutter pub get
+
+      - name: Analyze
+        script: |
+          flutter analyze
+
+      - name: Run tests
+        script: |
+          flutter test
+
+      - name: Build APK
+        script: |
+          flutter build apk --release
+
+    artifacts:
+      - build/app/outputs/flutter-apk/app-release.apk
