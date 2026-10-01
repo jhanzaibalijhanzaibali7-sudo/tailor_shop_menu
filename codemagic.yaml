@@ -12,11 +12,28 @@
           flutter create . --project-name tailor_shop_manager
           rm -f test/widget_test.dart
 
-          if [ -f android/app/build.gradle.kts ]; then
-            sed -i 's/compileSdk = flutter.compileSdkVersion/compileSdk = 36/' android/app/build.gradle.kts
-          elif [ -f android/app/build.gradle ]; then
-            sed -i 's/compileSdk flutter.compileSdkVersion/compileSdk 36/' android/app/build.gradle
-          fi
+      - name: Set Android compile SDK
+        script: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p = Path("android/app/build.gradle.kts")
+          if p.exists():
+              s = p.read_text()
+              s = s.replace(
+                  "compileSdk = flutter.compileSdkVersion",
+                  "compileSdk = 36"
+              )
+              p.write_text(s)
+          else:
+              p = Path("android/app/build.gradle")
+              s = p.read_text()
+              s = s.replace(
+                  "compileSdk flutter.compileSdkVersion",
+                  "compileSdk 36"
+              )
+              p.write_text(s)
+          PY
 
       - name: Apply platform configuration
         script: |
