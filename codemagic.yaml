@@ -10,6 +10,7 @@ workflows:
       - name: Create Flutter platform files
         script: |
           flutter create . --project-name tailor_shop_manager
+          rm -f test/widget_test.dart
 
       - name: Apply platform configuration
         script: |
