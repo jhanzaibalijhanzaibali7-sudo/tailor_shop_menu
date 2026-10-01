@@ -17,7 +17,7 @@ dependencies:
   speech_to_text: ^7.0.0
   shared_preferences: ^2.3.0
   path_provider: ^2.1.4
-  file_picker: ^8.1.2
+  file_picker:  ^10.3.3
   share_plus: ^10.0.2
   # flutter_localizations pins the exact intl version for each Flutter SDK,
   # so "any" lets pub pick the one that matches your installed Flutter.
