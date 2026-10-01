@@ -1,0 +1,41 @@
+name: Extract Flutter Project
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Extract project ZIP
+        run: |
+          mkdir extracted
+          unzip -o tailor_app_v4.zip -d extracted
+
+          find extracted -type f -not -path '*/__MACOSX/*' -exec cp --parents {} . \;
+
+      - name: Fix nested project folder if needed
+        run: |
+          if [ -d "extracted" ]; then
+            find extracted -mindepth 1 -maxdepth 1 -type d | while read dir; do
+              cp -r "$dir"/. .
+            done
+          fi
+
+      - name: Remove ZIP
+        run: rm -f tailor_app_v4.zip
+
+      - name: Commit extracted files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "Extract Flutter project" || echo "Nothing to commit"
+          git push
