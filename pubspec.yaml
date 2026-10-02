@@ -18,7 +18,10 @@ dependencies:
   shared_preferences: ^2.3.0
   path_provider: ^2.1.4
   file_picker:  ^10.3.3
+   
   share_plus: ^10.0.2
+  printing: ^5.13.4
+  pdf: ^3.11.1
   # flutter_localizations pins the exact intl version for each Flutter SDK,
   # so "any" lets pub pick the one that matches your installed Flutter.
   intl: any
