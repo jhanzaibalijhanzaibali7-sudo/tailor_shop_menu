@@ -538,13 +538,20 @@ class _HomePageState extends State<HomePage> {
         backgroundColor: darkBrown,
         foregroundColor: Colors.white,
         elevation: 2,
-        title: Text(
-          s.t(
-            'Tailor Shop',
-            'درزي جو دڪان',
+
+        // Center title
+        centerTitle: true,
+        title: const Text(
+          'Tailor Shop',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 22,
+            letterSpacing: 0.5,
           ),
         ),
+
         actions: [
+          // Language button
           TextButton(
             onPressed: s.toggleLanguage,
             style: TextButton.styleFrom(
@@ -552,92 +559,130 @@ class _HomePageState extends State<HomePage> {
             ),
             child: Text(
               s.sindhi ? 'English' : 'سنڌي',
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
 
-          PopupMenuButton<String>(
-            iconColor: Colors.white,
-            onSelected: (v) {
-              switch (v) {
-                case 'backup':
-                  _backup();
+          const SizedBox(width: 4),
 
-                case 'restore':
-                  _restore();
+          // Stylish menu button
+          Padding(
+            padding: const EdgeInsets.only(
+              right: 10,
+            ),
+            child: PopupMenuButton<String>(
+              tooltip: s.t(
+                'Menu',
+                'مينيو',
+              ),
 
-                case 'reports':
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute<void>(
-                      builder: (_) => const ReportsPage(),
+              icon: const Icon(
+                Icons.menu,
+                color: Colors.white,
+              ),
+
+              style: IconButton.styleFrom(
+                backgroundColor: mainBrown,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.all(9),
+                shape: RoundedRectangleBorder(
+                  borderRadius:
+                      BorderRadius.circular(10),
+                ),
+              ),
+
+              onSelected: (v) {
+                switch (v) {
+                  case 'backup':
+                    _backup();
+
+                  case 'restore':
+                    _restore();
+
+                  case 'reports':
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute<void>(
+                        builder: (_) =>
+                            const ReportsPage(),
+                      ),
+                    );
+
+                  case 'voice_lang':
+                    _pickVoiceLanguage();
+
+                  case 'voice_help':
+                    _showVoiceHelp();
+                }
+              },
+
+              itemBuilder: (_) => [
+                PopupMenuItem(
+                  value: 'reports',
+                  child: Text(
+                    s.t(
+                      'Reports',
+                      'رپورٽون',
                     ),
-                  );
+                  ),
+                ),
 
-                case 'voice_lang':
-                  _pickVoiceLanguage();
+                PopupMenuItem(
+                  value: 'backup',
+                  child: Text(
+                    s.t(
+                      'Backup',
+                      'بيڪ اپ',
+                    ),
+                  ),
+                ),
 
-                case 'voice_help':
-                  _showVoiceHelp();
-              }
-            },
-            itemBuilder: (_) => [
-              PopupMenuItem(
-                value: 'reports',
-                child: Text(
-                  s.t(
-                    'Reports',
-                    'رپورٽون',
+                PopupMenuItem(
+                  value: 'restore',
+                  child: Text(
+                    s.t(
+                      'Restore',
+                      'بحال ڪريو',
+                    ),
                   ),
                 ),
-              ),
-              PopupMenuItem(
-                value: 'backup',
-                child: Text(
-                  s.t(
-                    'Backup',
-                    'بيڪ اپ',
+
+                PopupMenuItem(
+                  enabled: false,
+                  child: Text(
+                    '${s.t('Last backup', 'آخري بيڪ اپ')}: '
+                    '${s.lastBackup == null ? s.t('never', 'ڪڏهن به نه') : fmtDate(s.lastBackup)}',
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodySmall,
                   ),
                 ),
-              ),
-              PopupMenuItem(
-                value: 'restore',
-                child: Text(
-                  s.t(
-                    'Restore',
-                    'بحال ڪريو',
+
+                const PopupMenuDivider(),
+
+                PopupMenuItem(
+                  value: 'voice_help',
+                  child: Text(
+                    s.t(
+                      'Voice commands',
+                      'آواز جا حڪم',
+                    ),
                   ),
                 ),
-              ),
-              PopupMenuItem(
-                enabled: false,
-                child: Text(
-                  '${s.t('Last backup', 'آخري بيڪ اپ')}: '
-                  '${s.lastBackup == null ? s.t('never', 'ڪڏهن به نه') : fmtDate(s.lastBackup)}',
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodySmall,
-                ),
-              ),
-              const PopupMenuDivider(),
-              PopupMenuItem(
-                value: 'voice_help',
-                child: Text(
-                  s.t(
-                    'Voice commands',
-                    'آواز جا حڪم',
+
+                PopupMenuItem(
+                  value: 'voice_lang',
+                  child: Text(
+                    s.t(
+                      'Voice language',
+                      'آواز جي ٻولي',
+                    ),
                   ),
                 ),
-              ),
-              PopupMenuItem(
-                value: 'voice_lang',
-                child: Text(
-                  s.t(
-                    'Voice language',
-                    'آواز جي ٻولي',
-                  ),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
