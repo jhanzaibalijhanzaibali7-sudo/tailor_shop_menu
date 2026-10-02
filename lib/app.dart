@@ -3,6 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'settings.dart';
 import 'ui/home_page.dart';
+import 'welcome_page.dart';
 
 class TailorApp extends StatelessWidget {
   final AppSettings settings;
@@ -17,24 +18,30 @@ class TailorApp extends StatelessWidget {
         builder: (context, _) => MaterialApp(
           debugShowCheckedModeBanner: false,
           title: 'Tailor Shop',
-          theme: ThemeData(useMaterial3: true, colorSchemeSeed: Colors.indigo),
-          // Flutter's built-in widget translations (date picker, tooltips,
-          // back button ...) do not include Sindhi, so Urdu - the closest
-          // right-to-left Arabic-script locale - is used for those. All app
-          // text itself is Sindhi.
+          theme: ThemeData(
+            useMaterial3: true,
+            colorSchemeSeed: Colors.indigo,
+          ),
+
           locale: Locale(settings.sindhi ? 'ur' : 'en'),
-          supportedLocales: const [Locale('en'), Locale('ur')],
+          supportedLocales: const [
+            Locale('en'),
+            Locale('ur'),
+          ],
+
           localizationsDelegates: const [
             GlobalMaterialLocalizations.delegate,
             GlobalWidgetsLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,
           ],
-          // Applies RTL to every route, dialog and bottom sheet.
+
           builder: (context, child) => Directionality(
             textDirection: settings.direction,
             child: child ?? const SizedBox.shrink(),
           ),
-          home: const HomePage(),
+
+          // First screen when the app opens
+          home: const WelcomePage(),
         ),
       ),
     );
@@ -65,7 +72,10 @@ class StartupErrorApp extends StatelessWidget {
                   style: TextStyle(fontSize: 18),
                 ),
                 const SizedBox(height: 12),
-                Text(error, textAlign: TextAlign.center),
+                Text(
+                  error,
+                  textAlign: TextAlign.center,
+                ),
               ],
             ),
           ),
