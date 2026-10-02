@@ -1,5 +1,10 @@
+ import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 
 import '../data/db.dart';
 import '../data/models.dart';
@@ -52,8 +57,10 @@ class _MeasurementsPageState extends State<MeasurementsPage> {
     final ok = await confirmDialog(
       context,
       title: s.t('Delete measurement', 'ماپ ڊيليٽ ڪريو'),
-      message: s.t('Delete this measurement and its photo?',
-          'هي ماپ ۽ ان جي تصوير ڊيليٽ ڪجي؟'),
+      message: s.t(
+        'Delete this measurement and its photo?',
+        'هي ماپ ۽ ان جي تصوير ڊيليٽ ڪجي؟',
+      ),
       confirmLabel: s.t('Delete', 'ڊيليٽ'),
       destructive: true,
     );
@@ -62,12 +69,222 @@ class _MeasurementsPageState extends State<MeasurementsPage> {
     if (mounted) _load();
   }
 
+  /// Opens a PDF preview for one measurement.
+  Future<void> _printMeasurement(MeasurementRecord m) async {
+    Uint8List? photoBytes;
+
+    if (m.photo != null) {
+      final file = await PhotoStore.resolve(m.photo);
+      if (file != null && await file.exists()) {
+        photoBytes = await file.readAsBytes();
+      }
+    }
+
+    if (!mounted) return;
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return Dialog(
+          insetPadding: const EdgeInsets.all(8),
+          child: SizedBox(
+            width: MediaQuery.of(dialogContext).size.width * 0.95,
+            height: MediaQuery.of(dialogContext).size.height * 0.92,
+            child: PdfPreview(
+              build: (format) => _buildMeasurementPdf(
+                format,
+                m,
+                photoBytes,
+              ),
+              allowPrinting: true,
+              allowSharing: true,
+              canChangePageFormat: false,
+              canChangeOrientation: false,
+              pdfFileName:
+                  '${widget.customer.name.replaceAll(' ', '_')}_measurement.pdf',
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<Uint8List> _buildMeasurementPdf(
+    PdfPageFormat format,
+    MeasurementRecord m,
+    Uint8List? photoBytes,
+  ) async {
+    final pdf = pw.Document();
+
+    final filled = kMeasurementFields
+        .where((f) => (m.values[f] ?? '').trim().isNotEmpty)
+        .toList();
+
+    pw.MemoryImage? photoImage;
+    if (photoBytes != null && photoBytes.isNotEmpty) {
+      photoImage = pw.MemoryImage(photoBytes);
+    }
+
+    pdf.addPage(
+      pw.Page(
+        pageFormat: format,
+        margin: const pw.EdgeInsets.all(28),
+        build: (context) {
+          return pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Text(
+                'TAILOR SHOP - MEASUREMENT',
+                style: pw.TextStyle(
+                  fontSize: 20,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+              ),
+              pw.SizedBox(height: 12),
+              pw.Divider(),
+              pw.SizedBox(height: 10),
+
+              pw.Text(
+                'Customer: ${widget.customer.name}',
+                style: pw.TextStyle(
+                  fontSize: 15,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+              ),
+
+              pw.SizedBox(height: 5),
+
+              pw.Text(
+                'Date: ${fmtDate(m.createdAt)}',
+                style: const pw.TextStyle(fontSize: 12),
+              ),
+
+              pw.SizedBox(height: 18),
+
+              if (filled.isEmpty)
+                pw.Text(
+                  'No measurements entered.',
+                  style: const pw.TextStyle(fontSize: 12),
+                )
+              else
+                pw.Table(
+                  border: pw.TableBorder.all(
+                    color: PdfColors.grey500,
+                    width: 0.7,
+                  ),
+                  columnWidths: const {
+                    0: pw.FlexColumnWidth(1.5),
+                    1: pw.FlexColumnWidth(2.5),
+                  },
+                  children: [
+                    pw.TableRow(
+                      decoration: const pw.BoxDecoration(
+                        color: PdfColors.grey200,
+                      ),
+                      children: [
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(7),
+                          child: pw.Text(
+                            'Measurement',
+                            style: pw.TextStyle(
+                              fontWeight: pw.FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(7),
+                          child: pw.Text(
+                            'Value',
+                            style: pw.TextStyle(
+                              fontWeight: pw.FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    for (final f in filled)
+                      pw.TableRow(
+                        children: [
+                          pw.Padding(
+                            padding: const pw.EdgeInsets.all(7),
+                            child: pw.Text(
+                              measurementLabel(f, false),
+                            ),
+                          ),
+                          pw.Padding(
+                            padding: const pw.EdgeInsets.all(7),
+                            child: pw.Text(
+                              m.values[f] ?? '',
+                            ),
+                          ),
+                        ],
+                      ),
+                  ],
+                ),
+
+              if ((m.values['notes'] ?? '').trim().isNotEmpty) ...[
+                pw.SizedBox(height: 18),
+                pw.Text(
+                  'Notes',
+                  style: pw.TextStyle(
+                    fontSize: 14,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
+                pw.SizedBox(height: 5),
+                pw.Container(
+                  width: double.infinity,
+                  padding: const pw.EdgeInsets.all(8),
+                  decoration: pw.BoxDecoration(
+                    border: pw.Border.all(
+                      color: PdfColors.grey500,
+                    ),
+                  ),
+                  child: pw.Text(
+                    m.values['notes']!.trim(),
+                  ),
+                ),
+              ],
+
+              if (photoImage != null) ...[
+                pw.SizedBox(height: 20),
+                pw.Text(
+                  'Measurement Book Photo',
+                  style: pw.TextStyle(
+                    fontSize: 14,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
+                pw.SizedBox(height: 8),
+                pw.Container(
+                  constraints: const pw.BoxConstraints(
+                    maxHeight: 330,
+                    maxWidth: 500,
+                  ),
+                  child: pw.Image(
+                    photoImage,
+                    fit: pw.BoxFit.contain,
+                  ),
+                ),
+              ],
+            ],
+          );
+        },
+      ),
+    );
+
+    return pdf.save();
+  }
+
   @override
   Widget build(BuildContext context) {
     final s = AppScope.of(context);
+
     return Scaffold(
       appBar: AppBar(
-        title: Text('${widget.customer.name} - ${s.t('Measurements', 'ماپ')}'),
+        title: Text(
+          '${widget.customer.name} - ${s.t('Measurements', 'ماپ')}',
+        ),
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
@@ -76,8 +293,10 @@ class _MeasurementsPageState extends State<MeasurementsPage> {
                   child: Padding(
                     padding: const EdgeInsets.all(32),
                     child: Text(
-                      s.t('No measurements yet. Tap "Add" to save one.',
-                          'اڃا ڪا ماپ ناهي. محفوظ ڪرڻ لاءِ "شامل ڪريو" دٻايو.'),
+                      s.t(
+                        'No measurements yet. Tap "Add" to save one.',
+                        'اڃا ڪا ماپ ناهي. محفوظ ڪرڻ لاءِ "شامل ڪريو" دٻايو.',
+                      ),
                       textAlign: TextAlign.center,
                     ),
                   ),
@@ -99,6 +318,7 @@ class _MeasurementsPageState extends State<MeasurementsPage> {
     final filled = kMeasurementFields
         .where((f) => (m.values[f] ?? '').trim().isNotEmpty)
         .toList();
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(12),
@@ -113,11 +333,19 @@ class _MeasurementsPageState extends State<MeasurementsPage> {
                     style: Theme.of(context).textTheme.labelLarge,
                   ),
                 ),
+
                 IconButton(
                   tooltip: s.t('Edit', 'تبديل ڪريو'),
                   icon: const Icon(Icons.edit),
                   onPressed: () => _edit(m),
                 ),
+
+                IconButton(
+                  tooltip: s.t('Print', 'پرنٽ'),
+                  icon: const Icon(Icons.print),
+                  onPressed: () => _printMeasurement(m),
+                ),
+
                 IconButton(
                   tooltip: s.t('Delete', 'ڊيليٽ'),
                   icon: const Icon(Icons.delete_outline),
@@ -125,8 +353,10 @@ class _MeasurementsPageState extends State<MeasurementsPage> {
                 ),
               ],
             ),
+
             if (filled.isEmpty && m.photo == null)
               Text(s.t('Empty measurement', 'خالي ماپ')),
+
             for (final f in filled)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 2),
@@ -137,16 +367,23 @@ class _MeasurementsPageState extends State<MeasurementsPage> {
                       width: 100,
                       child: Text(
                         measurementLabel(f, s.sindhi),
-                        style: const TextStyle(fontWeight: FontWeight.w600),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
-                    Expanded(child: Text(m.values[f]!)),
+                    Expanded(
+                      child: Text(m.values[f]!),
+                    ),
                   ],
                 ),
               ),
+
             if (m.photo != null) ...[
               const SizedBox(height: 8),
-              StoredPhoto(stored: m.photo!),
+              StoredPhoto(
+                stored: m.photo!,
+              ),
             ],
           ],
         ),
@@ -159,7 +396,12 @@ class _MeasurementsPageState extends State<MeasurementsPage> {
 class MeasurementFormPage extends StatefulWidget {
   final Customer customer;
   final MeasurementRecord? existing;
-  const MeasurementFormPage({super.key, required this.customer, this.existing});
+
+  const MeasurementFormPage({
+    super.key,
+    required this.customer,
+    this.existing,
+  });
 
   @override
   State<MeasurementFormPage> createState() => _MeasurementFormPageState();
@@ -184,10 +426,15 @@ class _MeasurementFormPageState extends State<MeasurementFormPage> {
   @override
   void initState() {
     super.initState();
+
     final e = widget.existing;
+
     for (final f in kMeasurementFields) {
-      _ctrls[f] = TextEditingController(text: e?.values[f] ?? '');
+      _ctrls[f] = TextEditingController(
+        text: e?.values[f] ?? '',
+      );
     }
+
     _photo = e?.photo;
     _originalPhoto = e?.photo;
   }
@@ -197,17 +444,20 @@ class _MeasurementFormPageState extends State<MeasurementFormPage> {
     for (final c in _ctrls.values) {
       c.dispose();
     }
+
     // Leaving without saving: delete photos copied during this session.
     if (!_saved) {
       for (final name in _newPhotos) {
         PhotoStore.delete(name);
       }
     }
+
     super.dispose();
   }
 
   Future<void> _pick(ImageSource source) async {
     final s = AppScope.of(context);
+
     try {
       final x = await _picker.pickImage(
         source: source,
@@ -215,20 +465,29 @@ class _MeasurementFormPageState extends State<MeasurementFormPage> {
         maxWidth: 2000,
         maxHeight: 2000,
       );
+
       if (x == null) return;
+
       final name = await PhotoStore.importFile(x.path);
       _newPhotos.add(name);
+
       if (!mounted) return;
+
       setState(() => _photo = name);
     } catch (e) {
       if (!mounted) return;
+
       showSnack(
         context,
         source == ImageSource.camera
-            ? s.t('Could not open the camera. Check the camera permission.',
-                'ڪئميرا کلي نه سگهيو. ڪئميرا جي اجازت چيڪ ڪريو.')
-            : s.t('Could not open the gallery. Check the photo permission.',
-                'گيلري کلي نه سگهي. فوٽو جي اجازت چيڪ ڪريو.'),
+            ? s.t(
+                'Could not open the camera. Check the camera permission.',
+                'ڪئميرا کلي نه سگهيو. ڪئميرا جي اجازت چيڪ ڪريو.',
+              )
+            : s.t(
+                'Could not open the gallery. Check the photo permission.',
+                'گيلري کلي نه سگهي. فوٽو جي اجازت چيڪ ڪريو.',
+              ),
       );
     }
   }
@@ -237,94 +496,160 @@ class _MeasurementFormPageState extends State<MeasurementFormPage> {
 
   Future<void> _save() async {
     if (_saving) return;
+
     setState(() => _saving = true);
+
     final values = <String, String>{
-      for (final f in kMeasurementFields) f: _ctrls[f]!.text.trim(),
+      for (final f in kMeasurementFields)
+        f: _ctrls[f]!.text.trim(),
     };
+
     final e = widget.existing;
+
     if (e == null) {
-      await DB.instance.addMeasurement(widget.customer.id, values, _photo);
+      await DB.instance.addMeasurement(
+        widget.customer.id,
+        values,
+        _photo,
+      );
     } else {
-      await DB.instance.updateMeasurement(e.id, values, _photo);
+      await DB.instance.updateMeasurement(
+        e.id,
+        values,
+        _photo,
+      );
     }
+
     _saved = true;
 
     // Remove photo files that are no longer used.
     if (_originalPhoto != null && _originalPhoto != _photo) {
       await DB.instance.releasePhoto(_originalPhoto);
     }
+
     for (final name in _newPhotos) {
-      if (name != _photo) await PhotoStore.delete(name);
+      if (name != _photo) {
+        await PhotoStore.delete(name);
+      }
     }
-    if (mounted) Navigator.pop(context, true);
+
+    if (mounted) {
+      Navigator.pop(context, true);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final s = AppScope.of(context);
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.existing == null
-            ? s.t('New Measurement', 'نئين ماپ')
-            : s.t('Edit Measurement', 'ماپ تبديل ڪريو')),
+        title: Text(
+          widget.existing == null
+              ? s.t('New Measurement', 'نئين ماپ')
+              : s.t('Edit Measurement', 'ماپ تبديل ڪريو'),
+        ),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Text(widget.customer.name,
-              style: Theme.of(context).textTheme.titleMedium),
+          Text(
+            widget.customer.name,
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+
           const SizedBox(height: 12),
+
           for (final f in kMeasurementFields)
             Padding(
               padding: const EdgeInsets.only(bottom: 10),
               child: TextField(
                 controller: _ctrls[f],
-                // Measurements are free text (e.g. 15.5, 15½), notes can be long.
-                keyboardType:
-                    f == 'notes' ? TextInputType.multiline : TextInputType.text,
+
+                // Measurements are free text (e.g. 15.5, 15½),
+                // notes can be long.
+                keyboardType: f == 'notes'
+                    ? TextInputType.multiline
+                    : TextInputType.text,
+
                 maxLines: f == 'notes' ? 3 : 1,
+
                 decoration: InputDecoration(
-                  labelText: measurementLabel(f, s.sindhi),
+                  labelText: measurementLabel(
+                    f,
+                    s.sindhi,
+                  ),
                   border: const OutlineInputBorder(),
                 ),
               ),
             ),
+
           Row(
             children: [
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: () => _pick(ImageSource.camera),
+                  onPressed: () => _pick(
+                    ImageSource.camera,
+                  ),
                   icon: const Icon(Icons.camera_alt),
-                  label: Text(s.t('Camera', 'ڪئميرا')),
+                  label: Text(
+                    s.t('Camera', 'ڪئميرا'),
+                  ),
                 ),
               ),
+
               const SizedBox(width: 8),
+
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: () => _pick(ImageSource.gallery),
+                  onPressed: () => _pick(
+                    ImageSource.gallery,
+                  ),
                   icon: const Icon(Icons.photo_library),
-                  label: Text(s.t('Gallery', 'گيلري')),
+                  label: Text(
+                    s.t('Gallery', 'گيلري'),
+                  ),
                 ),
               ),
             ],
           ),
+
           if (_photo != null) ...[
             const SizedBox(height: 12),
-            StoredPhoto(stored: _photo!, height: 220),
+
+            StoredPhoto(
+              stored: _photo!,
+              height: 220,
+            ),
+
             Align(
               alignment: AlignmentDirectional.centerEnd,
               child: TextButton.icon(
                 onPressed: _removePhoto,
-                icon: const Icon(Icons.delete_outline),
-                label: Text(s.t('Remove photo', 'تصوير هٽايو')),
+                icon: const Icon(
+                  Icons.delete_outline,
+                ),
+                label: Text(
+                  s.t(
+                    'Remove photo',
+                    'تصوير هٽايو',
+                  ),
+                ),
               ),
             ),
           ],
+
           const SizedBox(height: 14),
+
           FilledButton.icon(
             onPressed: _saving ? null : _save,
             icon: const Icon(Icons.save),
-            label: Text(s.t('Save Measurement', 'محفوظ ڪريو')),
+            label: Text(
+              s.t(
+                'Save Measurement',
+                'محفوظ ڪريو',
+              ),
+            ),
           ),
         ],
       ),
