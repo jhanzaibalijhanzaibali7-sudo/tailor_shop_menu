@@ -43,6 +43,10 @@
         script: |
           flutter pub get
 
+      - name: Generate app launcher icon
+        script: |
+          dart run flutter_launcher_icons
+
       - name: Analyze
         script: |
           flutter analyze || true
