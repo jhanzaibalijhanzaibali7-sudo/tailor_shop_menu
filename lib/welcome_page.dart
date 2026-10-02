@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+ import 'package:flutter/material.dart';
 import 'ui/home_page.dart';
 
 class WelcomePage extends StatelessWidget {
@@ -15,7 +15,7 @@ class WelcomePage extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 const Text(
-                  'Welcome to Tailor Shop',
+                  'Welcome to Max Tailor',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 30,
