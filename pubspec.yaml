@@ -17,8 +17,8 @@ dependencies:
   speech_to_text: ^7.0.0
   shared_preferences: ^2.3.0
   path_provider: ^2.1.4
-  file_picker:  ^10.3.3
-   
+  file_picker: ^10.3.3
+  flutter_launcher_icons: ^0.14.4
   share_plus: ^10.0.2
   printing: ^5.13.4
   pdf: ^3.11.1
@@ -33,3 +33,9 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "logo.png"
+  min_sdk_android: 24
