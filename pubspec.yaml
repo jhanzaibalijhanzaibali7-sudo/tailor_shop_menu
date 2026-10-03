@@ -22,6 +22,9 @@ dependencies:
   share_plus: ^10.0.2
   printing: ^5.13.4
   pdf: ^3.11.1
+  firebase_core: ^4.2.0
+  firebase_auth: ^6.1.0
+
   # flutter_localizations pins the exact intl version for each Flutter SDK,
   # so "any" lets pub pick the one that matches your installed Flutter.
   intl: any
