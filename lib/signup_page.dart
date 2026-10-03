@@ -11,18 +11,17 @@ class SignupPage extends StatefulWidget {
 }
 
 class _SignupPageState extends State<SignupPage> {
-  final _formKey = GlobalKey<FormState>();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
-  bool _obscurePassword = true;
-  bool _obscureConfirmPassword = true;
+  bool _isLogin = false;
   bool _loading = false;
-
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  bool _showPassword = false;
+  bool _showConfirmPassword = false;
 
   @override
   void dispose() {
@@ -33,8 +32,34 @@ class _SignupPageState extends State<SignupPage> {
     super.dispose();
   }
 
-  Future<void> _createAccount() async {
-    if (!_formKey.currentState!.validate()) {
+  Future<void> _submit() async {
+    final name = _nameController.text.trim();
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+    final confirmPassword = _confirmPasswordController.text.trim();
+
+    if (!_isLogin && name.isEmpty) {
+      _showMessage('Please enter your name.');
+      return;
+    }
+
+    if (email.isEmpty) {
+      _showMessage('Please enter your Gmail.');
+      return;
+    }
+
+    if (password.isEmpty) {
+      _showMessage('Please enter your password.');
+      return;
+    }
+
+    if (!_isLogin && password != confirmPassword) {
+      _showMessage('Passwords do not match.');
+      return;
+    }
+
+    if (password.length < 6) {
+      _showMessage('Password must be at least 6 characters.');
       return;
     }
 
@@ -43,60 +68,71 @@ class _SignupPageState extends State<SignupPage> {
     });
 
     try {
-      await _auth.createUserWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
-      );
+      if (_isLogin) {
+        // LOGIN
+        await _auth.signInWithEmailAndPassword(
+          email: email,
+          password: password,
+        );
+      } else {
+        // CREATE ACCOUNT
+        final credential = await _auth.createUserWithEmailAndPassword(
+          email: email,
+          password: password,
+        );
+
+        // Save user's name in Firebase profile.
+        await credential.user?.updateDisplayName(name);
+        await credential.user?.reload();
+      }
 
       if (!mounted) return;
 
-      // Account created successfully.
-      // Go directly to the Welcome Page.
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
           builder: (_) => const WelcomePage(),
         ),
       );
     } on FirebaseAuthException catch (e) {
-      if (!mounted) return;
-
       String message;
 
       switch (e.code) {
         case 'email-already-in-use':
-          message = 'This email is already registered.';
+          message = 'This Gmail is already registered. Please Login.';
           break;
+
         case 'invalid-email':
-          message = 'Please enter a valid email address.';
+          message = 'Please enter a valid Gmail address.';
           break;
+
         case 'weak-password':
           message = 'Password is too weak. Use at least 6 characters.';
           break;
+
+        case 'user-not-found':
+          message = 'No account found with this Gmail.';
+          break;
+
+        case 'wrong-password':
+        case 'invalid-credential':
+          message = 'Gmail or password is incorrect.';
+          break;
+
         case 'operation-not-allowed':
-          message = 'Email/Password sign-up is not enabled in Firebase.';
+          message = 'Email/Password sign-in is not enabled in Firebase.';
           break;
+
         case 'network-request-failed':
-          message = 'Please check your internet connection.';
+          message = 'Internet connection problem. Please try again.';
           break;
+
         default:
-          message = e.message ?? 'Unable to create account.';
+          message = e.message ?? 'Something went wrong. Please try again.';
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      _showMessage(message);
     } catch (e) {
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Something went wrong. Please try again.'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      _showMessage('Something went wrong. Please try again.');
     } finally {
       if (mounted) {
         setState(() {
@@ -106,39 +142,24 @@ class _SignupPageState extends State<SignupPage> {
     }
   }
 
-  InputDecoration _inputDecoration({
-    required String label,
-    required IconData icon,
-    Widget? suffixIcon,
-  }) {
-    return InputDecoration(
-      labelText: label,
-      prefixIcon: Icon(icon),
-      suffixIcon: suffixIcon,
-      filled: true,
-      fillColor: Colors.white,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
-        borderSide: BorderSide.none,
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
-        borderSide: BorderSide(
-          color: Colors.brown.shade100,
-        ),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
-        borderSide: BorderSide(
-          color: Colors.brown.shade600,
-          width: 1.5,
-        ),
+  void _showMessage(String message) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final title = _isLogin ? 'Welcome Back' : 'Create Your Account';
+    final subtitle = _isLogin
+        ? 'Login to continue to Tailor Shop'
+        : 'Create your account to get started';
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8F1E7),
       body: SafeArea(
@@ -146,224 +167,246 @@ class _SignupPageState extends State<SignupPage> {
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(
               horizontal: 24,
-              vertical: 28,
+              vertical: 30,
             ),
             child: ConstrainedBox(
-              constraints: const BoxConstraints(
-                maxWidth: 480,
-              ),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  children: [
-                    // Logo
-                    Container(
-                      width: 92,
-                      height: 92,
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.brown.withValues(alpha: 0.15),
-                            blurRadius: 18,
-                            offset: const Offset(0, 8),
-                          ),
-                        ],
-                      ),
-                      child: Image.asset(
-                        'logo.png',
-                        fit: BoxFit.contain,
-                      ),
+              constraints: const BoxConstraints(maxWidth: 430),
+              child: Column(
+                children: [
+                  // Logo
+                  Container(
+                    width: 100,
+                    height: 100,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.brown.withOpacity(0.15),
+                          blurRadius: 18,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
                     ),
-
-                    const SizedBox(height: 22),
-
-                    const Text(
-                      'Create Your Account',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF5D4037),
-                      ),
+                    child: Image.asset(
+                      'logo.png',
+                      fit: BoxFit.contain,
                     ),
+                  ),
 
-                    const SizedBox(height: 8),
+                  const SizedBox(height: 24),
 
-                    Text(
-                      'Create an account to continue to Tailor Shop',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 15,
-                        color: Colors.brown.shade400,
-                      ),
+                  Text(
+                    title,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 29,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF6D4228),
                     ),
+                  ),
 
-                    const SizedBox(height: 28),
+                  const SizedBox(height: 8),
 
-                    // Name
-                    TextFormField(
+                  Text(
+                    subtitle,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: Colors.brown.shade400,
+                    ),
+                  ),
+
+                  const SizedBox(height: 30),
+
+                  // Name only for signup
+                  if (!_isLogin) ...[
+                    _buildTextField(
                       controller: _nameController,
-                      textCapitalization: TextCapitalization.words,
-                      decoration: _inputDecoration(
-                        label: 'Full Name',
-                        icon: Icons.person_outline,
-                      ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Please enter your name';
-                        }
-                        return null;
-                      },
+                      label: 'Full Name',
+                      hint: 'Enter your name',
+                      icon: Icons.person_outline,
+                      textInputType: TextInputType.name,
                     ),
-
                     const SizedBox(height: 16),
+                  ],
 
-                    // Email
-                    TextFormField(
-                      controller: _emailController,
-                      keyboardType: TextInputType.emailAddress,
-                      decoration: _inputDecoration(
-                        label: 'Email',
-                        icon: Icons.email_outlined,
-                      ),
-                      validator: (value) {
-                        final email = value?.trim() ?? '';
+                  // Email
+                  _buildTextField(
+                    controller: _emailController,
+                    label: 'Gmail',
+                    hint: 'Enter your Gmail',
+                    icon: Icons.email_outlined,
+                    textInputType: TextInputType.emailAddress,
+                  ),
 
-                        if (email.isEmpty) {
-                          return 'Please enter your email';
-                        }
+                  const SizedBox(height: 16),
 
-                        if (!email.contains('@') || !email.contains('.')) {
-                          return 'Please enter a valid email';
-                        }
-
-                        return null;
+                  // Password
+                  _buildTextField(
+                    controller: _passwordController,
+                    label: 'Password',
+                    hint: 'Enter your password',
+                    icon: Icons.lock_outline,
+                    obscureText: !_showPassword,
+                    suffixIcon: IconButton(
+                      onPressed: () {
+                        setState(() {
+                          _showPassword = !_showPassword;
+                        });
                       },
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    // Password
-                    TextFormField(
-                      controller: _passwordController,
-                      obscureText: _obscurePassword,
-                      decoration: _inputDecoration(
-                        label: 'Password',
-                        icon: Icons.lock_outline,
-                        suffixIcon: IconButton(
-                          onPressed: () {
-                            setState(() {
-                              _obscurePassword = !_obscurePassword;
-                            });
-                          },
-                          icon: Icon(
-                            _obscurePassword
-                                ? Icons.visibility_outlined
-                                : Icons.visibility_off_outlined,
-                          ),
-                        ),
+                      icon: Icon(
+                        _showPassword
+                            ? Icons.visibility_off_outlined
+                            : Icons.visibility_outlined,
                       ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter a password';
-                        }
-
-                        if (value.length < 6) {
-                          return 'Password must be at least 6 characters';
-                        }
-
-                        return null;
-                      },
                     ),
+                  ),
 
+                  // Confirm password only for signup
+                  if (!_isLogin) ...[
                     const SizedBox(height: 16),
-
-                    // Confirm password
-                    TextFormField(
+                    _buildTextField(
                       controller: _confirmPasswordController,
-                      obscureText: _obscureConfirmPassword,
-                      decoration: _inputDecoration(
-                        label: 'Confirm Password',
-                        icon: Icons.lock_reset_outlined,
-                        suffixIcon: IconButton(
-                          onPressed: () {
-                            setState(() {
-                              _obscureConfirmPassword =
-                                  !_obscureConfirmPassword;
-                            });
-                          },
-                          icon: Icon(
-                            _obscureConfirmPassword
-                                ? Icons.visibility_outlined
-                                : Icons.visibility_off_outlined,
-                          ),
+                      label: 'Confirm Password',
+                      hint: 'Enter password again',
+                      icon: Icons.lock_reset_outlined,
+                      obscureText: !_showConfirmPassword,
+                      suffixIcon: IconButton(
+                        onPressed: () {
+                          setState(() {
+                            _showConfirmPassword =
+                                !_showConfirmPassword;
+                          });
+                        },
+                        icon: Icon(
+                          _showConfirmPassword
+                              ? Icons.visibility_off_outlined
+                              : Icons.visibility_outlined,
                         ),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please confirm your password';
-                        }
-
-                        if (value != _passwordController.text) {
-                          return 'Passwords do not match';
-                        }
-
-                        return null;
-                      },
-                    ),
-
-                    const SizedBox(height: 26),
-
-                    // Create Account button
-                    SizedBox(
-                      width: double.infinity,
-                      height: 56,
-                      child: ElevatedButton(
-                        onPressed: _loading ? null : _createAccount,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF795548),
-                          foregroundColor: Colors.white,
-                          elevation: 3,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                        ),
-                        child: _loading
-                            ? const SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2.5,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : const Text(
-                                'Create Account',
-                                style: TextStyle(
-                                  fontSize: 17,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 18),
-
-                    Text(
-                      'Your account will be securely created with Firebase.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.brown.shade300,
                       ),
                     ),
                   ],
-                ),
+
+                  const SizedBox(height: 28),
+
+                  // Main button
+                  SizedBox(
+                    width: double.infinity,
+                    height: 54,
+                    child: ElevatedButton(
+                      onPressed: _loading ? null : _submit,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF7A4A2A),
+                        foregroundColor: Colors.white,
+                        elevation: 3,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      child: _loading
+                          ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.5,
+                                color: Colors.white,
+                              ),
+                            )
+                          : Text(
+                              _isLogin
+                                  ? 'Login'
+                                  : 'Create Account',
+                              style: const TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 22),
+
+                  // Switch between Login and Signup
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        _isLogin
+                            ? "Don't have an account? "
+                            : 'Already have an account? ',
+                        style: TextStyle(
+                          color: Colors.brown.shade600,
+                          fontSize: 14,
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: _loading
+                            ? null
+                            : () {
+                                setState(() {
+                                  _isLogin = !_isLogin;
+                                  _passwordController.clear();
+                                  _confirmPasswordController.clear();
+                                });
+                              },
+                        child: Text(
+                          _isLogin ? 'Create Account' : 'Login',
+                          style: const TextStyle(
+                            color: Color(0xFF7A4A2A),
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    required IconData icon,
+    TextInputType? textInputType,
+    bool obscureText = false,
+    Widget? suffixIcon,
+  }) {
+    return TextField(
+      controller: controller,
+      keyboardType: textInputType,
+      obscureText: obscureText,
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hint,
+        prefixIcon: Icon(
+          icon,
+          color: const Color(0xFF7A4A2A),
+        ),
+        suffixIcon: suffixIcon,
+        filled: true,
+        fillColor: Colors.white,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(
+            color: Color(0xFF7A4A2A),
+            width: 1.5,
           ),
         ),
       ),
