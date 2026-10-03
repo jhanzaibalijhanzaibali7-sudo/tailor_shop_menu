@@ -4,10 +4,15 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'settings.dart';
 import 'ui/home_page.dart';
 import 'welcome_page.dart';
+import 'signup_page.dart';
 
 class TailorApp extends StatelessWidget {
   final AppSettings settings;
-  const TailorApp({super.key, required this.settings});
+
+  const TailorApp({
+    super.key,
+    required this.settings,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -24,6 +29,7 @@ class TailorApp extends StatelessWidget {
           ),
 
           locale: Locale(settings.sindhi ? 'ur' : 'en'),
+
           supportedLocales: const [
             Locale('en'),
             Locale('ur'),
@@ -41,7 +47,7 @@ class TailorApp extends StatelessWidget {
           ),
 
           // First screen when the app opens
-          home: const WelcomePage(),
+          home: const SignupPage(),
         ),
       ),
     );
@@ -51,7 +57,11 @@ class TailorApp extends StatelessWidget {
 /// Shown instead of the app when the database cannot be opened.
 class StartupErrorApp extends StatelessWidget {
   final String error;
-  const StartupErrorApp({super.key, required this.error});
+
+  const StartupErrorApp({
+    super.key,
+    required this.error,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -64,12 +74,17 @@ class StartupErrorApp extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.error_outline, size: 56),
+                const Icon(
+                  Icons.error_outline,
+                  size: 56,
+                ),
                 const SizedBox(height: 16),
                 const Text(
                   'The database could not be opened.\nڊيٽابيس کولي نه سگهيو.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 18),
+                  style: TextStyle(
+                    fontSize: 18,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 Text(
