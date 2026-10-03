@@ -5,12 +5,85 @@ workflows:
 
     environment:
       flutter: stable
+      groups:
+        - firebase
 
     scripts:
       - name: Create Flutter platform files
         script: |
           flutter create . --project-name tailor_shop_manager
           rm -f test/widget_test.dart
+
+      - name: Add Firebase configuration
+        script: |
+          echo "$GOOGLE_SERVICES_JSON_BASE64" | base64 --decode > android/app/google-services.json
+
+      - name: Configure Google Services plugin
+        script: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          # Configure root Android Gradle file
+          root = Path("android/settings.gradle.kts")
+
+          if root.exists():
+              s = root.read_text()
+
+              if 'com.google.gms.google-services' not in s:
+                  s = s.replace(
+                      'plugins {',
+                      '''plugins {
+              id("com.google.gms.google-services") version "4.4.2" apply false'''
+                  )
+
+              root.write_text(s)
+          else:
+              root = Path("android/settings.gradle")
+
+              s = root.read_text()
+
+              if 'com.google.gms.google-services' not in s:
+                  s = s.replace(
+                      'pluginManagement {',
+                      '''pluginManagement {
+          '''
+                  )
+
+              root.write_text(s)
+
+          # Configure app Gradle file
+          app = Path("android/app/build.gradle.kts")
+
+          if app.exists():
+              s = app.read_text()
+
+              if 'com.google.gms.google-services' not in s:
+                  s = s.replace(
+                      'plugins {',
+                      '''plugins {
+              id("com.google.gms.google-services")'''
+                  )
+
+              app.write_text(s)
+
+          else:
+              app = Path("android/app/build.gradle")
+              s = app.read_text()
+
+              if 'com.google.gms.google-services' not in s:
+                  s = s.replace(
+                      'apply plugin:',
+                      'apply plugin:'
+                  )
+
+                  s = '''apply plugin: 'com.google.gms.google-services'
+          ''' + s
+
+              app.write_text(s)
+
+          print("Firebase Google Services plugin configured.")
+          PY
 
       - name: Set Android compile SDK
         script: |
@@ -52,7 +125,6 @@ workflows:
           python3 - <<'PY'
           from pathlib import Path
 
-          # Set app name in Android strings.xml
           strings_file = Path("android/app/src/main/res/values/strings.xml")
 
           if strings_file.exists():
@@ -73,7 +145,6 @@ workflows:
 
               strings_file.write_text(s)
 
-          # Set app name directly in AndroidManifest.xml
           manifest = Path("android/app/src/main/AndroidManifest.xml")
 
           if manifest.exists():
