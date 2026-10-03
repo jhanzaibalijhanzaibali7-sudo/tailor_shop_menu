@@ -1,18 +1,16 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'settings.dart';
+import 'signup_page.dart';
 import 'ui/home_page.dart';
 import 'welcome_page.dart';
-import 'signup_page.dart';
 
 class TailorApp extends StatelessWidget {
   final AppSettings settings;
 
-  const TailorApp({
-    super.key,
-    required this.settings,
-  });
+  const TailorApp({super.key, required this.settings});
 
   @override
   Widget build(BuildContext context) {
@@ -23,6 +21,7 @@ class TailorApp extends StatelessWidget {
         builder: (context, _) => MaterialApp(
           debugShowCheckedModeBanner: false,
           title: 'Tailor Shop',
+
           theme: ThemeData(
             useMaterial3: true,
             colorSchemeSeed: Colors.indigo,
@@ -46,11 +45,26 @@ class TailorApp extends StatelessWidget {
             child: child ?? const SizedBox.shrink(),
           ),
 
-          // First screen when the app opens
-          home: const SignupPage(),
+          home: const AuthGate(),
         ),
       ),
     );
+  }
+}
+
+/// Decides which screen to show when the app opens.
+class AuthGate extends StatelessWidget {
+  const AuthGate({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user != null) {
+      return const WelcomePage();
+    }
+
+    return const SignupPage();
   }
 }
 
@@ -58,10 +72,7 @@ class TailorApp extends StatelessWidget {
 class StartupErrorApp extends StatelessWidget {
   final String error;
 
-  const StartupErrorApp({
-    super.key,
-    required this.error,
-  });
+  const StartupErrorApp({super.key, required this.error});
 
   @override
   Widget build(BuildContext context) {
@@ -74,17 +85,12 @@ class StartupErrorApp extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(
-                  Icons.error_outline,
-                  size: 56,
-                ),
+                const Icon(Icons.error_outline, size: 56),
                 const SizedBox(height: 16),
                 const Text(
                   'The database could not be opened.\nڊيٽابيس کولي نه سگهيو.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 18,
-                  ),
+                  style: TextStyle(fontSize: 18),
                 ),
                 const SizedBox(height: 12),
                 Text(
