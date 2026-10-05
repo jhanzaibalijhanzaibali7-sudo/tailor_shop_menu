@@ -677,6 +677,14 @@ class _HomePageState extends State<HomePage> {
               ),
               onSelected: (v) {
                 switch (v) {
+                  case 'profile':
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute<void>(
+                        builder: (_) => const ProfilePage(),
+                      ),
+                    );
+
                   case 'backup':
                     _backup();
 
@@ -738,6 +746,17 @@ class _HomePageState extends State<HomePage> {
                 ),
 
                 const PopupMenuDivider(),
+
+                PopupMenuItem<String>(
+                  value: 'profile',
+                  child: _modernMenuItem(
+                    icon: Icons.person_rounded,
+                    title: s.t(
+                      'Profile',
+                      'پروفائل',
+                    ),
+                  ),
+                ),
 
                 PopupMenuItem<String>(
                   value: 'reports',
