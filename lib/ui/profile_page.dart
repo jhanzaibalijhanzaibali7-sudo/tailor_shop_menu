@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -14,6 +15,7 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final ImagePicker _imagePicker = ImagePicker();
 
   late TextEditingController _nameController;
@@ -28,12 +30,7 @@ class _ProfilePageState extends State<ProfilePage> {
   void initState() {
     super.initState();
 
-    final user = _auth.currentUser;
-
-    _nameController = TextEditingController(
-      text: user?.displayName ?? '',
-    );
-
+    _nameController = TextEditingController();
     _shopController = TextEditingController();
     _phoneController = TextEditingController();
 
@@ -41,22 +38,59 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _loadProfile() async {
-    final prefs = await SharedPreferences.getInstance();
+    final user = _auth.currentUser;
 
-    if (!mounted) return;
+    if (user == null) {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+        });
+      }
+      return;
+    }
 
-    setState(() {
-      _shopController.text =
-          prefs.getString('profile_shop_name') ?? '';
+    try {
+      final doc = await _firestore
+          .collection('users')
+          .doc(user.uid)
+          .get();
 
-      _phoneController.text =
-          prefs.getString('profile_phone') ?? '';
+      final prefs = await SharedPreferences.getInstance();
 
-      _profileImagePath =
-          prefs.getString('profile_image_path');
+      if (!mounted) return;
 
-      _loading = false;
-    });
+      setState(() {
+        _nameController.text =
+            doc.data()?['fullName']?.toString() ??
+                user.displayName ??
+                '';
+
+        _shopController.text =
+            doc.data()?['shopName']?.toString() ?? '';
+
+        _phoneController.text =
+            doc.data()?['phone']?.toString() ?? '';
+
+        _profileImagePath =
+            prefs.getString('profile_image_path');
+
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _loading = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Could not load profile: $e',
+          ),
+        ),
+      );
+    }
   }
 
   Future<void> _pickProfileImage() async {
@@ -93,7 +127,9 @@ class _ProfilePageState extends State<ProfilePage> {
     if (name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please enter your full name'),
+          content: Text(
+            'Please enter your full name',
+          ),
         ),
       );
       return;
@@ -104,20 +140,23 @@ class _ProfilePageState extends State<ProfilePage> {
     });
 
     try {
-      // Update Firebase Full Name
+      // Update Firebase Authentication display name.
       await user.updateDisplayName(name);
 
-      // Save Shop Name and Phone Number locally
-      final prefs = await SharedPreferences.getInstance();
-
-      await prefs.setString(
-        'profile_shop_name',
-        shopName,
-      );
-
-      await prefs.setString(
-        'profile_phone',
-        phone,
+      // Save profile data in Firestore.
+      await _firestore
+          .collection('users')
+          .doc(user.uid)
+          .set(
+        {
+          'fullName': name,
+          'email': user.email ?? '',
+          'shopName': shopName,
+          'phone': phone,
+          'photoUrl': null,
+          'updatedAt': FieldValue.serverTimestamp(),
+        },
+        SetOptions(merge: true),
       );
 
       await user.reload();
@@ -130,7 +169,9 @@ class _ProfilePageState extends State<ProfilePage> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Profile saved successfully'),
+          content: Text(
+            'Profile saved successfully',
+          ),
         ),
       );
     } catch (e) {
@@ -142,7 +183,9 @@ class _ProfilePageState extends State<ProfilePage> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Could not save profile: $e'),
+          content: Text(
+            'Could not save profile: $e',
+          ),
         ),
       );
     }
@@ -294,7 +337,6 @@ class _ProfilePageState extends State<ProfilePage> {
                                 )
                               : null,
                         ),
-
                         Container(
                           padding: const EdgeInsets.all(9),
                           decoration: BoxDecoration(
