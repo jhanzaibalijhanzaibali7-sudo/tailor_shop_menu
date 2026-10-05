@@ -14,6 +14,7 @@ import '../settings.dart';
 import '../voice/command_parser.dart';
 import '../voice/voice_service.dart';
 import '../signup_page.dart';
+import 'profile_page.dart';
 import 'common.dart';
 import 'measurements_page.dart';
 import 'orders_page.dart';
