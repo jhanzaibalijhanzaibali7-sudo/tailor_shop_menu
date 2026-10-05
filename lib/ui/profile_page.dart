@@ -23,8 +23,10 @@ class _ProfilePageState extends State<ProfilePage> {
   late TextEditingController _phoneController;
 
   String? _profileImagePath;
+
   bool _saving = false;
   bool _loading = true;
+  bool _editingInformation = false;
 
   @override
   void initState() {
@@ -140,10 +142,8 @@ class _ProfilePageState extends State<ProfilePage> {
     });
 
     try {
-      // Update Firebase Authentication display name.
       await user.updateDisplayName(name);
 
-      // Save profile data in Firestore.
       await _firestore
           .collection('users')
           .doc(user.uid)
@@ -165,6 +165,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
       setState(() {
         _saving = false;
+        _editingInformation = false;
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -191,6 +192,291 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
+  Future<void> _showChangePasswordDialog() async {
+    final currentPasswordController =
+        TextEditingController();
+    final newPasswordController =
+        TextEditingController();
+    final confirmPasswordController =
+        TextEditingController();
+
+    bool obscureCurrent = true;
+    bool obscureNew = true;
+    bool obscureConfirm = true;
+    bool changingPassword = false;
+
+    await showDialog(
+      context: context,
+      barrierDismissible: !changingPassword,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            Future<void> changePassword() async {
+              final user = _auth.currentUser;
+
+              if (user == null) return;
+
+              final currentPassword =
+                  currentPasswordController.text.trim();
+              final newPassword =
+                  newPasswordController.text.trim();
+              final confirmPassword =
+                  confirmPasswordController.text.trim();
+
+              if (currentPassword.isEmpty ||
+                  newPassword.isEmpty ||
+                  confirmPassword.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'Please fill all password fields',
+                    ),
+                  ),
+                );
+                return;
+              }
+
+              if (newPassword.length < 6) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'New password must be at least 6 characters',
+                    ),
+                  ),
+                );
+                return;
+              }
+
+              if (newPassword != confirmPassword) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'New passwords do not match',
+                    ),
+                  ),
+                );
+                return;
+              }
+
+              setDialogState(() {
+                changingPassword = true;
+              });
+
+              try {
+                final email = user.email;
+
+                if (email == null || email.isEmpty) {
+                  throw FirebaseAuthException(
+                    code: 'no-email',
+                    message:
+                        'No email is associated with this account.',
+                  );
+                }
+
+                final credential =
+                    EmailAuthProvider.credential(
+                  email: email,
+                  password: currentPassword,
+                );
+
+                await user.reauthenticateWithCredential(
+                  credential,
+                );
+
+                await user.updatePassword(newPassword);
+
+                if (!mounted) return;
+
+                Navigator.of(dialogContext).pop();
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'Password changed successfully',
+                    ),
+                  ),
+                );
+              } on FirebaseAuthException catch (e) {
+                setDialogState(() {
+                  changingPassword = false;
+                });
+
+                String message =
+                    'Could not change password';
+
+                if (e.code == 'wrong-password' ||
+                    e.code == 'invalid-credential') {
+                  message =
+                      'Current password is incorrect';
+                } else if (e.code == 'weak-password') {
+                  message =
+                      'New password is too weak';
+                } else if (e.code == 'requires-recent-login') {
+                  message =
+                      'Please sign in again and try changing the password';
+                } else if (e.message != null &&
+                    e.message!.isNotEmpty) {
+                  message = e.message!;
+                }
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(message),
+                  ),
+                );
+              } catch (e) {
+                setDialogState(() {
+                  changingPassword = false;
+                });
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Could not change password: $e',
+                    ),
+                  ),
+                );
+              }
+            }
+
+            return AlertDialog(
+              title: const Text(
+                'Change Password',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller:
+                          currentPasswordController,
+                      obscureText: obscureCurrent,
+                      enabled: !changingPassword,
+                      decoration: InputDecoration(
+                        labelText: 'Current Password',
+                        prefixIcon:
+                            const Icon(Icons.lock_outline),
+                        suffixIcon: IconButton(
+                          onPressed: changingPassword
+                              ? null
+                              : () {
+                                  setDialogState(() {
+                                    obscureCurrent =
+                                        !obscureCurrent;
+                                  });
+                                },
+                          icon: Icon(
+                            obscureCurrent
+                                ? Icons.visibility
+                                : Icons.visibility_off,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 15),
+                    TextField(
+                      controller: newPasswordController,
+                      obscureText: obscureNew,
+                      enabled: !changingPassword,
+                      decoration: InputDecoration(
+                        labelText: 'New Password',
+                        prefixIcon:
+                            const Icon(Icons.lock_reset),
+                        suffixIcon: IconButton(
+                          onPressed: changingPassword
+                              ? null
+                              : () {
+                                  setDialogState(() {
+                                    obscureNew =
+                                        !obscureNew;
+                                  });
+                                },
+                          icon: Icon(
+                            obscureNew
+                                ? Icons.visibility
+                                : Icons.visibility_off,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 15),
+                    TextField(
+                      controller:
+                          confirmPasswordController,
+                      obscureText: obscureConfirm,
+                      enabled: !changingPassword,
+                      decoration: InputDecoration(
+                        labelText:
+                            'Confirm New Password',
+                        prefixIcon:
+                            const Icon(Icons.lock_reset),
+                        suffixIcon: IconButton(
+                          onPressed: changingPassword
+                              ? null
+                              : () {
+                                  setDialogState(() {
+                                    obscureConfirm =
+                                        !obscureConfirm;
+                                  });
+                                },
+                          icon: Icon(
+                            obscureConfirm
+                                ? Icons.visibility
+                                : Icons.visibility_off,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: changingPassword
+                      ? null
+                      : () {
+                          Navigator.of(dialogContext).pop();
+                        },
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: changingPassword
+                      ? null
+                      : changePassword,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor:
+                        const Color(0xFF6D4228),
+                    foregroundColor: Colors.white,
+                  ),
+                  child: changingPassword
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child:
+                              CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text(
+                          'Change Password',
+                        ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    currentPasswordController.dispose();
+    newPasswordController.dispose();
+    confirmPasswordController.dispose();
+  }
+
   Widget _editableField({
     required IconData icon,
     required String label,
@@ -211,6 +497,7 @@ class _ProfilePageState extends State<ProfilePage> {
         child: TextField(
           controller: controller,
           keyboardType: keyboardType,
+          enabled: _editingInformation,
           decoration: InputDecoration(
             border: InputBorder.none,
             icon: Icon(
@@ -279,8 +566,11 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget build(BuildContext context) {
     final user = _auth.currentUser;
 
-    final String email = user?.email ?? 'No Gmail';
-    final String userId = user?.uid ?? 'No User ID';
+    final String email =
+        user?.email ?? 'No Gmail';
+
+    final String userId =
+        user?.uid ?? 'No User ID';
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F1E7),
@@ -323,7 +613,9 @@ class _ProfilePageState extends State<ProfilePage> {
                                         _profileImagePath!,
                                       ).existsSync()
                                   ? FileImage(
-                                      File(_profileImagePath!),
+                                      File(
+                                        _profileImagePath!,
+                                      ),
                                     )
                                   : null,
                           child: _profileImagePath == null ||
@@ -383,7 +675,47 @@ class _ProfilePageState extends State<ProfilePage> {
                     value: email,
                   ),
 
-                  const SizedBox(height: 5),
+                  const SizedBox(height: 10),
+
+                  // Edit Information
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        setState(() {
+                          _editingInformation =
+                              !_editingInformation;
+                        });
+                      },
+                      icon: Icon(
+                        _editingInformation
+                            ? Icons.close
+                            : Icons.edit_outlined,
+                      ),
+                      label: Text(
+                        _editingInformation
+                            ? 'Cancel Edit'
+                            : 'Edit Information',
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor:
+                            const Color(0xFF6D4228),
+                        side: const BorderSide(
+                          color: Color(0xFF6D4228),
+                        ),
+                        padding:
+                            const EdgeInsets.symmetric(
+                          vertical: 14,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius:
+                              BorderRadius.circular(16),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 18),
 
                   // Full Name
                   _editableField(
@@ -404,46 +736,84 @@ class _ProfilePageState extends State<ProfilePage> {
                     icon: Icons.phone_outlined,
                     label: 'Phone Number',
                     controller: _phoneController,
-                    keyboardType: TextInputType.phone,
+                    keyboardType:
+                        TextInputType.phone,
                   ),
 
-                  const SizedBox(height: 12),
+                  if (_editingInformation) ...[
+                    const SizedBox(height: 12),
 
-                  // Save Button
-                  SizedBox(
-                    width: double.infinity,
-                    height: 54,
-                    child: ElevatedButton.icon(
-                      onPressed:
-                          _saving ? null : _saveProfile,
-                      icon: _saving
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child:
-                                  CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
+                    SizedBox(
+                      width: double.infinity,
+                      height: 54,
+                      child: ElevatedButton.icon(
+                        onPressed:
+                            _saving
+                                ? null
+                                : _saveProfile,
+                        icon: _saving
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child:
+                                    CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Icon(
+                                Icons.save_outlined,
                               ),
-                            )
-                          : const Icon(
-                              Icons.save_outlined,
-                            ),
-                      label: Text(
-                        _saving
-                            ? 'Saving...'
-                            : 'Save Profile',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                        label: Text(
+                          _saving
+                              ? 'Saving...'
+                              : 'Save Profile',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        style:
+                            ElevatedButton.styleFrom(
+                          backgroundColor:
+                              const Color(0xFF6D4228),
+                          foregroundColor: Colors.white,
+                          disabledBackgroundColor:
+                              const Color(0xFF9E806B),
+                          shape:
+                              RoundedRectangleBorder(
+                            borderRadius:
+                                BorderRadius.circular(16),
+                          ),
                         ),
                       ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor:
+                    ),
+                  ],
+
+                  const SizedBox(height: 18),
+
+                  // Change Password
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed:
+                          _showChangePasswordDialog,
+                      icon: const Icon(
+                        Icons.lock_reset,
+                      ),
+                      label: const Text(
+                        'Change Password',
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor:
                             const Color(0xFF6D4228),
-                        foregroundColor: Colors.white,
-                        disabledBackgroundColor:
-                            const Color(0xFF9E806B),
+                        side: const BorderSide(
+                          color: Color(0xFF6D4228),
+                        ),
+                        padding:
+                            const EdgeInsets.symmetric(
+                          vertical: 14,
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius:
                               BorderRadius.circular(16),
