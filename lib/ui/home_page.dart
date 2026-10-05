@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -12,6 +13,7 @@ import '../data/models.dart';
 import '../settings.dart';
 import '../voice/command_parser.dart';
 import '../voice/voice_service.dart';
+import '../signup_page.dart';
 import 'common.dart';
 import 'measurements_page.dart';
 import 'orders_page.dart';
@@ -143,6 +145,51 @@ class _HomePageState extends State<HomePage> {
     await DB.instance.deleteCustomer(c.id);
 
     if (mounted) _load();
+  }
+
+  // ------------------------------------------------------------- sign out
+
+  Future<void> _signOut() async {
+    final s = AppScope.of(context);
+
+    final ok = await confirmDialog(
+      context,
+      title: s.t(
+        'Sign Out',
+        'سائن آئوٽ',
+      ),
+      message: s.t(
+        'Are you sure you want to sign out?',
+        'ڇا توهان واقعي سائن آئوٽ ڪرڻ چاهيو ٿا؟',
+      ),
+      confirmLabel: s.t(
+        'Sign Out',
+        'سائن آئوٽ',
+      ),
+      destructive: true,
+    );
+
+    if (!ok || !mounted) return;
+
+    try {
+      await FirebaseAuth.instance.signOut();
+
+      if (!mounted) return;
+
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute<void>(
+          builder: (_) => const SignupPage(),
+        ),
+        (route) => false,
+      );
+    } catch (e) {
+      if (mounted) {
+        showSnack(
+          context,
+          '${s.t('Sign out failed', 'سائن آئوٽ ناڪام')}: $e',
+        );
+      }
+    }
   }
 
   // ----------------------------------------------------------------- voice
@@ -648,6 +695,9 @@ class _HomePageState extends State<HomePage> {
 
                   case 'voice_help':
                     _showVoiceHelp();
+
+                  case 'sign_out':
+                    _signOut();
                 }
               },
               itemBuilder: (_) => [
@@ -777,6 +827,19 @@ class _HomePageState extends State<HomePage> {
                     title: s.t(
                       'Voice language',
                       'آواز جي ٻولي',
+                    ),
+                  ),
+                ),
+
+                const PopupMenuDivider(),
+
+                PopupMenuItem<String>(
+                  value: 'sign_out',
+                  child: _modernMenuItem(
+                    icon: Icons.logout_rounded,
+                    title: s.t(
+                      'Sign Out',
+                      'سائن آئوٽ',
                     ),
                   ),
                 ),
@@ -1072,9 +1135,6 @@ class _HomePageState extends State<HomePage> {
 
             onTap: () => _openOrders(c),
 
-            // ---------------------------------------------------------
-            // Modern customer menu
-            // ---------------------------------------------------------
             trailing: PopupMenuButton<String>(
               tooltip: s.t(
                 'Customer options',
@@ -1121,9 +1181,6 @@ class _HomePageState extends State<HomePage> {
               },
 
               itemBuilder: (_) => [
-                // -----------------------------------------------------
-                // Customer menu header
-                // -----------------------------------------------------
                 PopupMenuItem<String>(
                   enabled: false,
                   height: 62,
@@ -1162,9 +1219,6 @@ class _HomePageState extends State<HomePage> {
 
                 const PopupMenuDivider(),
 
-                // -----------------------------------------------------
-                // Measurements
-                // -----------------------------------------------------
                 PopupMenuItem<String>(
                   value: 'measure',
                   child: _customerMenuItem(
@@ -1176,9 +1230,6 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
 
-                // -----------------------------------------------------
-                // Orders
-                // -----------------------------------------------------
                 PopupMenuItem<String>(
                   value: 'orders',
                   child: _customerMenuItem(
@@ -1190,9 +1241,6 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
 
-                // -----------------------------------------------------
-                // Edit
-                // -----------------------------------------------------
                 PopupMenuItem<String>(
                   value: 'edit',
                   child: _customerMenuItem(
@@ -1204,9 +1252,6 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
 
-                // -----------------------------------------------------
-                // Delete
-                // -----------------------------------------------------
                 PopupMenuItem<String>(
                   value: 'delete',
                   child: _customerMenuItem(
