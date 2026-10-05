@@ -4,7 +4,12 @@ import 'package:flutter/material.dart';
 import 'welcome_page.dart';
 
 class SignupPage extends StatefulWidget {
-  const SignupPage({super.key});
+  const SignupPage({
+    super.key,
+    this.showLogin = false,
+  });
+
+  final bool showLogin;
 
   @override
   State<SignupPage> createState() => _SignupPageState();
@@ -22,6 +27,14 @@ class _SignupPageState extends State<SignupPage> {
   bool _loading = false;
   bool _showPassword = false;
   bool _showConfirmPassword = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // If opened after Sign Out, show Login mode directly.
+    _isLogin = widget.showLogin;
+  }
 
   @override
   void dispose() {
@@ -69,19 +82,16 @@ class _SignupPageState extends State<SignupPage> {
 
     try {
       if (_isLogin) {
-        // LOGIN
         await _auth.signInWithEmailAndPassword(
           email: email,
           password: password,
         );
       } else {
-        // CREATE ACCOUNT
         final credential = await _auth.createUserWithEmailAndPassword(
           email: email,
           password: password,
         );
 
-        // Save user's name in Firebase profile.
         await credential.user?.updateDisplayName(name);
         await credential.user?.reload();
       }
@@ -156,6 +166,7 @@ class _SignupPageState extends State<SignupPage> {
   @override
   Widget build(BuildContext context) {
     final title = _isLogin ? 'Welcome Back' : 'Create Your Account';
+
     final subtitle = _isLogin
         ? 'Login to continue to Tailor Shop'
         : 'Create your account to get started';
@@ -173,7 +184,6 @@ class _SignupPageState extends State<SignupPage> {
               constraints: const BoxConstraints(maxWidth: 430),
               child: Column(
                 children: [
-                  // Logo
                   Container(
                     width: 100,
                     height: 100,
@@ -220,7 +230,6 @@ class _SignupPageState extends State<SignupPage> {
 
                   const SizedBox(height: 30),
 
-                  // Name only for signup
                   if (!_isLogin) ...[
                     _buildTextField(
                       controller: _nameController,
@@ -232,7 +241,6 @@ class _SignupPageState extends State<SignupPage> {
                     const SizedBox(height: 16),
                   ],
 
-                  // Email
                   _buildTextField(
                     controller: _emailController,
                     label: 'Gmail',
@@ -243,7 +251,6 @@ class _SignupPageState extends State<SignupPage> {
 
                   const SizedBox(height: 16),
 
-                  // Password
                   _buildTextField(
                     controller: _passwordController,
                     label: 'Password',
@@ -264,9 +271,9 @@ class _SignupPageState extends State<SignupPage> {
                     ),
                   ),
 
-                  // Confirm password only for signup
                   if (!_isLogin) ...[
                     const SizedBox(height: 16),
+
                     _buildTextField(
                       controller: _confirmPasswordController,
                       label: 'Confirm Password',
@@ -291,7 +298,6 @@ class _SignupPageState extends State<SignupPage> {
 
                   const SizedBox(height: 28),
 
-                  // Main button
                   SizedBox(
                     width: double.infinity,
                     height: 54,
@@ -328,7 +334,6 @@ class _SignupPageState extends State<SignupPage> {
 
                   const SizedBox(height: 22),
 
-                  // Switch between Login and Signup
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -341,12 +346,14 @@ class _SignupPageState extends State<SignupPage> {
                           fontSize: 14,
                         ),
                       ),
+
                       GestureDetector(
                         onTap: _loading
                             ? null
                             : () {
                                 setState(() {
                                   _isLogin = !_isLogin;
+
                                   _passwordController.clear();
                                   _confirmPasswordController.clear();
                                 });
@@ -413,3 +420,5 @@ class _SignupPageState extends State<SignupPage> {
     );
   }
 }
+
+     
