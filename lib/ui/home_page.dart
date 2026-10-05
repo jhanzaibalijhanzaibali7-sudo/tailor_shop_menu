@@ -524,12 +524,46 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  // --------------------------------------------------------- modern menu
+
+  Widget _modernMenuItem({
+    required IconData icon,
+    required String title,
+  }) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: softBrown,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(
+            icon,
+            color: mainBrown,
+            size: 21,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            title,
+            style: const TextStyle(
+              color: darkBrown,
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   // ------------------------------------------------------------------- build
 
   @override
   Widget build(BuildContext context) {
     final s = AppScope.of(context);
-    final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
       backgroundColor: lightBrown,
@@ -539,7 +573,6 @@ class _HomePageState extends State<HomePage> {
         foregroundColor: Colors.white,
         elevation: 2,
 
-        // Center title
         centerTitle: true,
         title: const Text(
           'Tailor Shop',
@@ -551,7 +584,6 @@ class _HomePageState extends State<HomePage> {
         ),
 
         actions: [
-          // Language button
           TextButton(
             onPressed: s.toggleLanguage,
             style: TextButton.styleFrom(
@@ -567,7 +599,6 @@ class _HomePageState extends State<HomePage> {
 
           const SizedBox(width: 4),
 
-          // Stylish menu button
           Padding(
             padding: const EdgeInsets.only(
               right: 10,
@@ -577,22 +608,25 @@ class _HomePageState extends State<HomePage> {
                 'Menu',
                 'مينيو',
               ),
-
-              icon: const Icon(
-                Icons.menu,
-                color: Colors.white,
+              offset: const Offset(0, 8),
+              elevation: 8,
+              color: lightBrown,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(18),
               ),
-
+              icon: const Icon(
+                Icons.menu_rounded,
+                color: Colors.white,
+                size: 28,
+              ),
               style: IconButton.styleFrom(
                 backgroundColor: mainBrown,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.all(9),
                 shape: RoundedRectangleBorder(
-                  borderRadius:
-                      BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(12),
                 ),
               ),
-
               onSelected: (v) {
                 switch (v) {
                   case 'backup':
@@ -605,8 +639,7 @@ class _HomePageState extends State<HomePage> {
                     Navigator.push(
                       context,
                       MaterialPageRoute<void>(
-                        builder: (_) =>
-                            const ReportsPage(),
+                        builder: (_) => const ReportsPage(),
                       ),
                     );
 
@@ -617,65 +650,131 @@ class _HomePageState extends State<HomePage> {
                     _showVoiceHelp();
                 }
               },
-
               itemBuilder: (_) => [
-                PopupMenuItem(
+                PopupMenuItem<String>(
+                  enabled: false,
+                  height: 65,
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: mainBrown,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.content_cut_rounded,
+                          color: Colors.white,
+                          size: 24,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          s.t(
+                            'Max Tailor',
+                            'ميڪس درزي',
+                          ),
+                          style: const TextStyle(
+                            color: darkBrown,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const PopupMenuDivider(),
+
+                PopupMenuItem<String>(
                   value: 'reports',
-                  child: Text(
-                    s.t(
+                  child: _modernMenuItem(
+                    icon: Icons.bar_chart_rounded,
+                    title: s.t(
                       'Reports',
                       'رپورٽون',
                     ),
                   ),
                 ),
 
-                PopupMenuItem(
+                PopupMenuItem<String>(
                   value: 'backup',
-                  child: Text(
-                    s.t(
+                  child: _modernMenuItem(
+                    icon: Icons.cloud_upload_rounded,
+                    title: s.t(
                       'Backup',
                       'بيڪ اپ',
                     ),
                   ),
                 ),
 
-                PopupMenuItem(
+                PopupMenuItem<String>(
                   value: 'restore',
-                  child: Text(
-                    s.t(
+                  child: _modernMenuItem(
+                    icon: Icons.cloud_download_rounded,
+                    title: s.t(
                       'Restore',
                       'بحال ڪريو',
                     ),
                   ),
                 ),
 
-                PopupMenuItem(
+                PopupMenuItem<String>(
                   enabled: false,
-                  child: Text(
-                    '${s.t('Last backup', 'آخري بيڪ اپ')}: '
-                    '${s.lastBackup == null ? s.t('never', 'ڪڏهن به نه') : fmtDate(s.lastBackup)}',
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodySmall,
+                  height: 52,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: softBrown,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.history_rounded,
+                          size: 20,
+                          color: darkBrown,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            '${s.t('Last backup', 'آخري بيڪ اپ')}: '
+                            '${s.lastBackup == null ? s.t('never', 'ڪڏهن به نه') : fmtDate(s.lastBackup)}',
+                            style: const TextStyle(
+                              color: darkBrown,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
 
                 const PopupMenuDivider(),
 
-                PopupMenuItem(
+                PopupMenuItem<String>(
                   value: 'voice_help',
-                  child: Text(
-                    s.t(
+                  child: _modernMenuItem(
+                    icon: Icons.record_voice_over_rounded,
+                    title: s.t(
                       'Voice commands',
                       'آواز جا حڪم',
                     ),
                   ),
                 ),
 
-                PopupMenuItem(
+                PopupMenuItem<String>(
                   value: 'voice_lang',
-                  child: Text(
-                    s.t(
+                  child: _modernMenuItem(
+                    icon: Icons.language_rounded,
+                    title: s.t(
                       'Voice language',
                       'آواز جي ٻولي',
                     ),
@@ -691,8 +790,6 @@ class _HomePageState extends State<HomePage> {
         padding: const EdgeInsets.all(12),
         child: Column(
           children: [
-            // ------------------------------------------------ search
-
             Row(
               children: [
                 Expanded(
@@ -729,16 +826,14 @@ class _HomePageState extends State<HomePage> {
                       filled: true,
                       fillColor: Colors.white,
                       focusedBorder: OutlineInputBorder(
-                        borderRadius:
-                            BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(10),
                         borderSide: const BorderSide(
                           color: mainBrown,
                           width: 2,
                         ),
                       ),
                       enabledBorder: OutlineInputBorder(
-                        borderRadius:
-                            BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(10),
                         borderSide: BorderSide(
                           color: mainBrown.withValues(
                             alpha: 0.35,
@@ -768,8 +863,6 @@ class _HomePageState extends State<HomePage> {
                 ),
               ],
             ),
-
-            // ------------------------------------------------ listening
 
             if (_listening)
               Card(
@@ -805,8 +898,6 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
               ),
-
-            // ------------------------------------------------ backup banner
 
             if (_list.isNotEmpty &&
                 _search.text.isEmpty &&
@@ -858,10 +949,7 @@ class _HomePageState extends State<HomePage> {
         ),
       ),
 
-      // ---------------------------------------------------- add customer
-
-      floatingActionButton:
-          FloatingActionButton.extended(
+      floatingActionButton: FloatingActionButton.extended(
         backgroundColor: mainBrown,
         foregroundColor: Colors.white,
         elevation: 4,
@@ -947,8 +1035,7 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
           child: ListTile(
-            contentPadding:
-                const EdgeInsets.symmetric(
+            contentPadding: const EdgeInsets.symmetric(
               horizontal: 12,
               vertical: 4,
             ),
@@ -985,9 +1072,38 @@ class _HomePageState extends State<HomePage> {
 
             onTap: () => _openOrders(c),
 
-            trailing:
-                PopupMenuButton<String>(
-              iconColor: mainBrown,
+            // ---------------------------------------------------------
+            // Modern customer menu
+            // ---------------------------------------------------------
+            trailing: PopupMenuButton<String>(
+              tooltip: s.t(
+                'Customer options',
+                'گراهڪ جا آپشن',
+              ),
+
+              offset: const Offset(-8, 8),
+
+              elevation: 8,
+
+              color: lightBrown,
+
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(18),
+              ),
+
+              icon: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: softBrown,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.more_vert_rounded,
+                  color: mainBrown,
+                  size: 24,
+                ),
+              ),
+
               onSelected: (v) {
                 switch (v) {
                   case 'measure':
@@ -1003,41 +1119,103 @@ class _HomePageState extends State<HomePage> {
                     _deleteCustomer(c);
                 }
               },
+
               itemBuilder: (_) => [
-                PopupMenuItem(
+                // -----------------------------------------------------
+                // Customer menu header
+                // -----------------------------------------------------
+                PopupMenuItem<String>(
+                  enabled: false,
+                  height: 62,
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(9),
+                        decoration: BoxDecoration(
+                          color: mainBrown,
+                          borderRadius: BorderRadius.circular(11),
+                        ),
+                        child: const Icon(
+                          Icons.person_rounded,
+                          color: Colors.white,
+                          size: 22,
+                        ),
+                      ),
+
+                      const SizedBox(width: 10),
+
+                      Expanded(
+                        child: Text(
+                          c.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: darkBrown,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const PopupMenuDivider(),
+
+                // -----------------------------------------------------
+                // Measurements
+                // -----------------------------------------------------
+                PopupMenuItem<String>(
                   value: 'measure',
-                  child: Text(
-                    s.t(
+                  child: _customerMenuItem(
+                    icon: Icons.straighten_rounded,
+                    title: s.t(
                       'Measurements',
                       'ماپ',
                     ),
                   ),
                 ),
-                PopupMenuItem(
+
+                // -----------------------------------------------------
+                // Orders
+                // -----------------------------------------------------
+                PopupMenuItem<String>(
                   value: 'orders',
-                  child: Text(
-                    s.t(
+                  child: _customerMenuItem(
+                    icon: Icons.receipt_long_rounded,
+                    title: s.t(
                       'Orders',
                       'آرڊر',
                     ),
                   ),
                 ),
-                PopupMenuItem(
+
+                // -----------------------------------------------------
+                // Edit
+                // -----------------------------------------------------
+                PopupMenuItem<String>(
                   value: 'edit',
-                  child: Text(
-                    s.t(
+                  child: _customerMenuItem(
+                    icon: Icons.edit_rounded,
+                    title: s.t(
                       'Edit',
                       'تبديل ڪريو',
                     ),
                   ),
                 ),
-                PopupMenuItem(
+
+                // -----------------------------------------------------
+                // Delete
+                // -----------------------------------------------------
+                PopupMenuItem<String>(
                   value: 'delete',
-                  child: Text(
-                    s.t(
+                  child: _customerMenuItem(
+                    icon: Icons.delete_outline_rounded,
+                    title: s.t(
                       'Delete',
                       'ڊيليٽ',
                     ),
+                    delete: true,
                   ),
                 ),
               ],
@@ -1045,6 +1223,52 @@ class _HomePageState extends State<HomePage> {
           ),
         );
       },
+    );
+  }
+
+  // ---------------------------------------------------------
+  // Customer menu item design
+  // ---------------------------------------------------------
+
+  Widget _customerMenuItem({
+    required IconData icon,
+    required String title,
+    bool delete = false,
+  }) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: delete
+                ? const Color(0xFFF2D6D2)
+                : softBrown,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(
+            icon,
+            color: delete
+                ? const Color(0xFFB3261E)
+                : mainBrown,
+            size: 21,
+          ),
+        ),
+
+        const SizedBox(width: 12),
+
+        Expanded(
+          child: Text(
+            title,
+            style: TextStyle(
+              color: delete
+                  ? const Color(0xFFB3261E)
+                  : darkBrown,
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -1079,18 +1303,15 @@ class _CustomerDialog extends StatefulWidget {
 
 class _CustomerDialogState
     extends State<_CustomerDialog> {
-  final _formKey =
-      GlobalKey<FormState>();
+  final _formKey = GlobalKey<FormState>();
 
   late final TextEditingController _name;
   late final TextEditingController _phone;
   late final TextEditingController _address;
 
-  static const Color mainBrown =
-      Color(0xFF6B4F3A);
+  static const Color mainBrown = Color(0xFF6B4F3A);
 
-  static const Color darkBrown =
-      Color(0xFF4E342E);
+  static const Color darkBrown = Color(0xFF4E342E);
 
   @override
   void initState() {
@@ -1142,8 +1363,7 @@ class _CustomerDialogState
         child: Form(
           key: _formKey,
           child: Column(
-            mainAxisSize:
-                MainAxisSize.min,
+            mainAxisSize: MainAxisSize.min,
             children: [
               TextFormField(
                 controller: _name,
@@ -1151,20 +1371,17 @@ class _CustomerDialogState
                 textCapitalization:
                     TextCapitalization.words,
                 cursorColor: mainBrown,
-                decoration:
-                    InputDecoration(
+                decoration: InputDecoration(
                   labelText: s.t(
                     'Name',
                     'نالو',
                   ),
-                  labelStyle:
-                      const TextStyle(
+                  labelStyle: const TextStyle(
                     color: darkBrown,
                   ),
                   focusedBorder:
                       const UnderlineInputBorder(
-                    borderSide:
-                        BorderSide(
+                    borderSide: BorderSide(
                       color: mainBrown,
                       width: 2,
                     ),
@@ -1185,20 +1402,17 @@ class _CustomerDialogState
                 keyboardType:
                     TextInputType.phone,
                 cursorColor: mainBrown,
-                decoration:
-                    InputDecoration(
+                decoration: InputDecoration(
                   labelText: s.t(
                     'Phone',
                     'فون',
                   ),
-                  labelStyle:
-                      const TextStyle(
+                  labelStyle: const TextStyle(
                     color: darkBrown,
                   ),
                   focusedBorder:
                       const UnderlineInputBorder(
-                    borderSide:
-                        BorderSide(
+                    borderSide: BorderSide(
                       color: mainBrown,
                       width: 2,
                     ),
@@ -1209,20 +1423,17 @@ class _CustomerDialogState
               TextFormField(
                 controller: _address,
                 cursorColor: mainBrown,
-                decoration:
-                    InputDecoration(
+                decoration: InputDecoration(
                   labelText: s.t(
                     'Address',
                     'پتو',
                   ),
-                  labelStyle:
-                      const TextStyle(
+                  labelStyle: const TextStyle(
                     color: darkBrown,
                   ),
                   focusedBorder:
                       const UnderlineInputBorder(
-                    borderSide:
-                        BorderSide(
+                    borderSide: BorderSide(
                       color: mainBrown,
                       width: 2,
                     ),
