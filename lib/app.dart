@@ -43,7 +43,8 @@ class TailorApp extends StatelessWidget {
             title: 'Tailor Shop',
             debugShowCheckedModeBanner: false,
 
-            locale: settings.locale,
+            // Temporary diagnostic test: keep Flutter's built-in locale English.
+            locale: const Locale('en'),
 
             supportedLocales: const [
               Locale('en'),
