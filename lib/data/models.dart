@@ -32,9 +32,29 @@ const Map<String, String> _labelSd = {
   'notes': 'نوٽ',
 };
 
-/// Label of a measurement field in English or Sindhi.
-String measurementLabel(String field, bool sindhi) =>
-    (sindhi ? _labelSd : _labelEn)[field] ?? field;
+const Map<String, String> _labelUr = {
+  'chest': 'چھاتی',
+  'waist': 'کمر',
+  'shalwar': 'شلوار',
+  'bazu': 'بازو',
+  'kameez': 'قمیض',
+  'shoulder': 'کندھا',
+  'neck': 'گلا',
+  'notes': 'نوٹس',
+};
+
+/// Returns a measurement label in English, Sindhi, or Urdu.
+/// Pass 'en', 'sd', or 'ur' as the language code.
+String measurementLabel(String field, String language) {
+  switch (language) {
+    case 'sd':
+      return _labelSd[field] ?? field;
+    case 'ur':
+      return _labelUr[field] ?? field;
+    default:
+      return _labelEn[field] ?? field;
+  }
+}
 
 double _num(Object? v) => (v is num) ? v.toDouble() : 0.0;
 
@@ -70,7 +90,8 @@ class CustomerSummary {
     required this.orderCount,
   });
 
-  factory CustomerSummary.fromMap(Map<String, Object?> m) => CustomerSummary(
+  factory CustomerSummary.fromMap(Map<String, Object?> m) =>
+      CustomerSummary(
         customer: Customer.fromMap(m),
         remaining: _num(m['remaining']),
         orderCount: (m['order_count'] as num?)?.toInt() ?? 0,
@@ -94,16 +115,21 @@ class MeasurementRecord {
 
   factory MeasurementRecord.fromMap(Map<String, Object?> m) {
     final values = <String, String>{};
+
     for (final f in kMeasurementFields) {
       values[f] = (m[f] as String?) ?? '';
     }
+
     final photo = m['photo'] as String?;
+
     return MeasurementRecord(
       id: (m['id'] as num).toInt(),
       customerId: (m['customer_id'] as num).toInt(),
       values: values,
       photo: (photo == null || photo.isEmpty) ? null : photo,
-      createdAt: DateTime.tryParse((m['created_at'] as String?) ?? ''),
+      createdAt: DateTime.tryParse(
+        (m['created_at'] as String?) ?? '',
+      ),
     );
   }
 }
@@ -129,7 +155,8 @@ class OrderRecord {
     this.createdAt,
   });
 
-  factory OrderRecord.fromMap(Map<String, Object?> m) => OrderRecord(
+  factory OrderRecord.fromMap(Map<String, Object?> m) =>
+      OrderRecord(
         id: (m['id'] as num).toInt(),
         customerId: (m['customer_id'] as num).toInt(),
         details: (m['details'] as String?) ?? '',
@@ -137,18 +164,26 @@ class OrderRecord {
         total: _num(m['total']),
         paid: _num(m['paid']),
         status: (m['status'] as String?) ?? 'pending',
-        createdAt: DateTime.tryParse((m['created_at'] as String?) ?? ''),
+        createdAt: DateTime.tryParse(
+          (m['created_at'] as String?) ?? '',
+        ),
       );
 
   double get remaining => total - paid;
+
   bool get hasBalance => remaining > 0.005;
+
   bool get delivered => status == 'delivered';
+
   DateTime? get delivery => DateTime.tryParse(deliveryDate);
 
   bool get overdue {
     final d = delivery;
+
     if (d == null || delivered) return false;
+
     final now = DateTime.now();
+
     return d.isBefore(DateTime(now.year, now.month, now.day));
   }
 }
@@ -158,18 +193,28 @@ class Balance {
   final double paid;
   final int orders;
 
-  const Balance({this.total = 0, this.paid = 0, this.orders = 0});
+  const Balance({
+    this.total = 0,
+    this.paid = 0,
+    this.orders = 0,
+  });
 
   double get remaining => total - paid;
 
   factory Balance.fromOrders(List<OrderRecord> orders) {
     var t = 0.0;
     var p = 0.0;
+
     for (final o in orders) {
       t += o.total;
       p += o.paid;
     }
-    return Balance(total: t, paid: p, orders: orders.length);
+
+    return Balance(
+      total: t,
+      paid: p,
+      orders: orders.length,
+    );
   }
 }
 
@@ -192,6 +237,7 @@ class Totals {
 class DeliveryRow {
   final OrderRecord order;
   final String customerName;
+
   const DeliveryRow(this.order, this.customerName);
 }
 
@@ -199,7 +245,12 @@ class DueRow {
   final int customerId;
   final String customerName;
   final double remaining;
-  const DueRow(this.customerId, this.customerName, this.remaining);
+
+  const DueRow(
+    this.customerId,
+    this.customerName,
+    this.remaining,
+  );
 }
 
 class MonthRow {
@@ -207,7 +258,13 @@ class MonthRow {
   final int orders;
   final double total;
   final double paid;
-  const MonthRow(this.month, this.orders, this.total, this.paid);
+
+  const MonthRow(
+    this.month,
+    this.orders,
+    this.total,
+    this.paid,
+  );
 }
 
 class ReportData {
@@ -223,5 +280,6 @@ class ReportData {
     required this.months,
   });
 
-  int get overdueCount => pending.where((r) => r.order.overdue).length;
+  int get overdueCount =>
+      pending.where((r) => r.order.overdue).length;
 }
