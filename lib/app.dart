@@ -3,8 +3,8 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import 'settings.dart';
-import 'ui/welcome_page.dart';
-import 'ui/signup_page.dart';
+import 'welcome_page.dart';
+import 'signup_page.dart';
 
 /// Makes AppSettings available to all pages in the app.
 class AppScope extends InheritedNotifier<AppSettings> {
