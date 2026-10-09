@@ -1,36 +1,35 @@
-import 'package:firebase_auth/firebase_auth.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import 'settings.dart';
-import 'signup_page.dart';
-import 'ui/home_page.dart';
-import 'welcome_page.dart';
+import 'ui/welcome_page.dart';
+import 'ui/signup_page.dart';
 
 class TailorApp extends StatelessWidget {
   final AppSettings settings;
 
-  const TailorApp({super.key, required this.settings});
+  const TailorApp({
+    super.key,
+    required this.settings,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return AppScope(
-      settings: settings,
-      child: ListenableBuilder(
-        listenable: settings,
-        builder: (context, _) => MaterialApp(
-          debugShowCheckedModeBanner: false,
+    return AnimatedBuilder(
+      animation: settings,
+      builder: (context, child) {
+        return MaterialApp(
           title: 'Tailor Shop',
+          debugShowCheckedModeBanner: false,
 
-          theme: ThemeData(
-            useMaterial3: true,
-            colorSchemeSeed: Colors.indigo,
-          ),
-
-          locale: Locale(settings.sindhi ? 'ur' : 'en'),
+          // Selected language: English, Sindhi, or Urdu.
+          locale: settings.locale,
 
           supportedLocales: const [
             Locale('en'),
+            Locale('sd'),
             Locale('ur'),
           ],
 
@@ -40,68 +39,65 @@ class TailorApp extends StatelessWidget {
             GlobalCupertinoLocalizations.delegate,
           ],
 
-          builder: (context, child) => Directionality(
-            textDirection: settings.direction,
-            child: child ?? const SizedBox.shrink(),
+          // Preserve the brown and cream app theme.
+          theme: ThemeData(
+            useMaterial3: true,
+            scaffoldBackgroundColor:
+                const Color(0xFFF5EDE3),
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: const Color(0xFF6B4F3A),
+              primary: const Color(0xFF6B4F3A),
+              secondary: const Color(0xFF8D6E63),
+              surface: const Color(0xFFF5EDE3),
+            ),
+            appBarTheme: const AppBarTheme(
+              backgroundColor: Color(0xFFF5EDE3),
+              foregroundColor: Color(0xFF4E342E),
+              centerTitle: true,
+            ),
           ),
 
+          // English uses LTR; Sindhi and Urdu use RTL.
+          builder: (context, child) {
+            return Directionality(
+              textDirection: settings.direction,
+              child: child ?? const SizedBox.shrink(),
+            );
+          },
+
           home: const AuthGate(),
-        ),
-      ),
+        );
+      },
     );
   }
 }
 
-/// Decides which screen to show when the app opens.
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
-
-    if (user != null) {
-      return const WelcomePage();
-    }
-
-    return const SignupPage();
-  }
-}
-
-/// Shown instead of the app when the database cannot be opened.
-class StartupErrorApp extends StatelessWidget {
-  final String error;
-
-  const StartupErrorApp({super.key, required this.error});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: Scaffold(
-        body: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.error_outline, size: 56),
-                const SizedBox(height: 16),
-                const Text(
-                  'The database could not be opened.\nڊيٽابيس کولي نه سگهيو.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 18),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  error,
-                  textAlign: TextAlign.center,
-                ),
-              ],
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState ==
+            ConnectionState.waiting) {
+          return const Scaffold(
+            backgroundColor: Color(0xFFF5EDE3),
+            body: Center(
+              child: CircularProgressIndicator(
+                color: Color(0xFF6B4F3A),
+              ),
             ),
-          ),
-        ),
-      ),
+          );
+        }
+
+        if (snapshot.data != null) {
+          return const WelcomePage();
+        }
+
+        return const SignupPage();
+      },
     );
   }
 }
