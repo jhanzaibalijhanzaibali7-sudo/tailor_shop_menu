@@ -1,4 +1,4 @@
- import 'dart:typed_data';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -13,9 +13,9 @@ import '../settings.dart';
 import 'common.dart';
 
 /// Saved measurements of one customer (newest first) + add / edit.
-/// Opened from the customer menu and by the voice command "Ahmed ji maap".
 class MeasurementsPage extends StatefulWidget {
   final Customer customer;
+
   const MeasurementsPage({super.key, required this.customer});
 
   @override
@@ -35,6 +35,7 @@ class _MeasurementsPageState extends State<MeasurementsPage> {
   Future<void> _load() async {
     final rows = await DB.instance.measurementsFor(widget.customer.id);
     if (!mounted) return;
+
     setState(() {
       _items = rows;
       _loading = false;
@@ -45,36 +46,53 @@ class _MeasurementsPageState extends State<MeasurementsPage> {
     final saved = await Navigator.push<bool>(
       context,
       MaterialPageRoute<bool>(
-        builder: (_) =>
-            MeasurementFormPage(customer: widget.customer, existing: existing),
+        builder: (_) => MeasurementFormPage(
+          customer: widget.customer,
+          existing: existing,
+        ),
       ),
     );
-    if (saved == true && mounted) _load();
+
+    if (saved == true && mounted) {
+      await _load();
+    }
   }
 
-  Future<void> _delete(MeasurementRecord m) async {
+  Future<void> _delete(MeasurementRecord measurement) async {
     final s = AppScope.of(context);
+
     final ok = await confirmDialog(
       context,
-      title: s.t('Delete measurement', 'ماپ ڊيليٽ ڪريو'),
+      title: s.t(
+        'Delete measurement',
+        'ماپ ڊيليٽ ڪريو',
+        'پیمائش حذف کریں',
+      ),
       message: s.t(
         'Delete this measurement and its photo?',
         'هي ماپ ۽ ان جي تصوير ڊيليٽ ڪجي؟',
+        'کیا یہ پیمائش اور اس کی تصویر حذف کر دیں؟',
       ),
-      confirmLabel: s.t('Delete', 'ڊيليٽ'),
+      confirmLabel: s.t('Delete', 'ڊيليٽ', 'حذف کریں'),
       destructive: true,
     );
+
     if (!ok) return;
-    await DB.instance.deleteMeasurement(m);
-    if (mounted) _load();
+
+    await DB.instance.deleteMeasurement(measurement);
+
+    if (mounted) {
+      await _load();
+    }
   }
 
   /// Opens a PDF preview for one measurement.
-  Future<void> _printMeasurement(MeasurementRecord m) async {
+  Future<void> _printMeasurement(MeasurementRecord measurement) async {
     Uint8List? photoBytes;
 
-    if (m.photo != null) {
-      final file = await PhotoStore.resolve(m.photo);
+    if (measurement.photo != null) {
+      final file = await PhotoStore.resolve(measurement.photo);
+
       if (file != null && await file.exists()) {
         photoBytes = await file.readAsBytes();
       }
@@ -93,7 +111,7 @@ class _MeasurementsPageState extends State<MeasurementsPage> {
             child: PdfPreview(
               build: (format) => _buildMeasurementPdf(
                 format,
-                m,
+                measurement,
                 photoBytes,
               ),
               allowPrinting: true,
@@ -111,16 +129,18 @@ class _MeasurementsPageState extends State<MeasurementsPage> {
 
   Future<Uint8List> _buildMeasurementPdf(
     PdfPageFormat format,
-    MeasurementRecord m,
+    MeasurementRecord measurement,
     Uint8List? photoBytes,
   ) async {
     final pdf = pw.Document();
 
     final filled = kMeasurementFields
-        .where((f) => (m.values[f] ?? '').trim().isNotEmpty)
+        .where((field) =>
+            (measurement.values[field] ?? '').trim().isNotEmpty)
         .toList();
 
     pw.MemoryImage? photoImage;
+
     if (photoBytes != null && photoBytes.isNotEmpty) {
       photoImage = pw.MemoryImage(photoBytes);
     }
@@ -143,7 +163,6 @@ class _MeasurementsPageState extends State<MeasurementsPage> {
               pw.SizedBox(height: 12),
               pw.Divider(),
               pw.SizedBox(height: 10),
-
               pw.Text(
                 'Customer: ${widget.customer.name}',
                 style: pw.TextStyle(
@@ -151,16 +170,12 @@ class _MeasurementsPageState extends State<MeasurementsPage> {
                   fontWeight: pw.FontWeight.bold,
                 ),
               ),
-
               pw.SizedBox(height: 5),
-
               pw.Text(
-                'Date: ${fmtDate(m.createdAt)}',
+                'Date: ${fmtDate(measurement.createdAt)}',
                 style: const pw.TextStyle(fontSize: 12),
               ),
-
               pw.SizedBox(height: 18),
-
               if (filled.isEmpty)
                 pw.Text(
                   'No measurements entered.',
@@ -202,27 +217,26 @@ class _MeasurementsPageState extends State<MeasurementsPage> {
                         ),
                       ],
                     ),
-                    for (final f in filled)
+                    for (final field in filled)
                       pw.TableRow(
                         children: [
                           pw.Padding(
                             padding: const pw.EdgeInsets.all(7),
                             child: pw.Text(
-                              measurementLabel(f, false),
+                              measurementLabel(field, false),
                             ),
                           ),
                           pw.Padding(
                             padding: const pw.EdgeInsets.all(7),
                             child: pw.Text(
-                              m.values[f] ?? '',
+                              measurement.values[field] ?? '',
                             ),
                           ),
                         ],
                       ),
                   ],
                 ),
-
-              if ((m.values['notes'] ?? '').trim().isNotEmpty) ...[
+              if ((measurement.values['notes'] ?? '').trim().isNotEmpty) ...[
                 pw.SizedBox(height: 18),
                 pw.Text(
                   'Notes',
@@ -236,16 +250,11 @@ class _MeasurementsPageState extends State<MeasurementsPage> {
                   width: double.infinity,
                   padding: const pw.EdgeInsets.all(8),
                   decoration: pw.BoxDecoration(
-                    border: pw.Border.all(
-                      color: PdfColors.grey500,
-                    ),
+                    border: pw.Border.all(color: PdfColors.grey500),
                   ),
-                  child: pw.Text(
-                    m.values['notes']!.trim(),
-                  ),
+                  child: pw.Text(measurement.values['notes']!.trim()),
                 ),
               ],
-
               if (photoImage != null) ...[
                 pw.SizedBox(height: 20),
                 pw.Text(
@@ -283,7 +292,8 @@ class _MeasurementsPageState extends State<MeasurementsPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          '${widget.customer.name} - ${s.t('Measurements', 'ماپ')}',
+          '${widget.customer.name} - '
+          '${s.t('Measurements', 'ماپ', 'پیمائش')}',
         ),
       ),
       body: _loading
@@ -296,6 +306,7 @@ class _MeasurementsPageState extends State<MeasurementsPage> {
                       s.t(
                         'No measurements yet. Tap "Add" to save one.',
                         'اڃا ڪا ماپ ناهي. محفوظ ڪرڻ لاءِ "شامل ڪريو" دٻايو.',
+                        'ابھی کوئی پیمائش نہیں۔ محفوظ کرنے کے لیے "شامل کریں" دبائیں۔',
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -304,19 +315,20 @@ class _MeasurementsPageState extends State<MeasurementsPage> {
               : ListView.builder(
                   padding: const EdgeInsets.fromLTRB(10, 10, 10, 90),
                   itemCount: _items.length,
-                  itemBuilder: (_, i) => _card(s, _items[i]),
+                  itemBuilder: (_, index) => _card(s, _items[index]),
                 ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _edit(),
         icon: const Icon(Icons.add),
-        label: Text(s.t('Add', 'شامل ڪريو')),
+        label: Text(s.t('Add', 'شامل ڪريو', 'شامل کریں')),
       ),
     );
   }
 
-  Widget _card(AppSettings s, MeasurementRecord m) {
+  Widget _card(AppSettings s, MeasurementRecord measurement) {
     final filled = kMeasurementFields
-        .where((f) => (m.values[f] ?? '').trim().isNotEmpty)
+        .where((field) =>
+            (measurement.values[field] ?? '').trim().isNotEmpty)
         .toList();
 
     return Card(
@@ -329,35 +341,36 @@ class _MeasurementsPageState extends State<MeasurementsPage> {
               children: [
                 Expanded(
                   child: Text(
-                    fmtDate(m.createdAt),
+                    fmtDate(measurement.createdAt),
                     style: Theme.of(context).textTheme.labelLarge,
                   ),
                 ),
-
                 IconButton(
-                  tooltip: s.t('Edit', 'تبديل ڪريو'),
+                  tooltip: s.t('Edit', 'تبديل ڪريو', 'ترمیم کریں'),
                   icon: const Icon(Icons.edit),
-                  onPressed: () => _edit(m),
+                  onPressed: () => _edit(measurement),
                 ),
-
                 IconButton(
-                  tooltip: s.t('Print', 'پرنٽ'),
+                  tooltip: s.t('Print', 'پرنٽ', 'پرنٹ'),
                   icon: const Icon(Icons.print),
-                  onPressed: () => _printMeasurement(m),
+                  onPressed: () => _printMeasurement(measurement),
                 ),
-
                 IconButton(
-                  tooltip: s.t('Delete', 'ڊيليٽ'),
+                  tooltip: s.t('Delete', 'ڊيليٽ', 'حذف کریں'),
                   icon: const Icon(Icons.delete_outline),
-                  onPressed: () => _delete(m),
+                  onPressed: () => _delete(measurement),
                 ),
               ],
             ),
-
-            if (filled.isEmpty && m.photo == null)
-              Text(s.t('Empty measurement', 'خالي ماپ')),
-
-            for (final f in filled)
+            if (filled.isEmpty && measurement.photo == null)
+              Text(
+                s.t(
+                  'Empty measurement',
+                  'خالي ماپ',
+                  'خالی پیمائش',
+                ),
+              ),
+            for (final field in filled)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 2),
                 child: Row(
@@ -366,24 +379,21 @@ class _MeasurementsPageState extends State<MeasurementsPage> {
                     SizedBox(
                       width: 100,
                       child: Text(
-                        measurementLabel(f, s.sindhi),
+                        measurementLabel(field, s.sindhi),
                         style: const TextStyle(
                           fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),
                     Expanded(
-                      child: Text(m.values[f]!),
+                      child: Text(measurement.values[field]!),
                     ),
                   ],
                 ),
               ),
-
-            if (m.photo != null) ...[
+            if (measurement.photo != null) ...[
               const SizedBox(height: 8),
-              StoredPhoto(
-                stored: m.photo!,
-              ),
+              StoredPhoto(stored: measurement.photo!),
             ],
           ],
         ),
@@ -392,7 +402,7 @@ class _MeasurementsPageState extends State<MeasurementsPage> {
   }
 }
 
-/// Add or edit one measurement, with camera / gallery photo of the book page.
+/// Add or edit a measurement, with camera / gallery photo support.
 class MeasurementFormPage extends StatefulWidget {
   final Customer customer;
   final MeasurementRecord? existing;
@@ -404,20 +414,16 @@ class MeasurementFormPage extends StatefulWidget {
   });
 
   @override
-  State<MeasurementFormPage> createState() => _MeasurementFormPageState();
+  State<MeasurementFormPage> createState() =>
+      _MeasurementFormPageState();
 }
 
 class _MeasurementFormPageState extends State<MeasurementFormPage> {
   final Map<String, TextEditingController> _ctrls = {};
   final ImagePicker _picker = ImagePicker();
 
-  /// Stored photo name (already in the app folder) or null.
   String? _photo;
-
-  /// Photo name stored when the form opened, to clean up if it is replaced.
   String? _originalPhoto;
-
-  /// Photos copied in this session that are not saved yet.
   final List<String> _newPhotos = [];
 
   bool _saving = false;
@@ -427,25 +433,24 @@ class _MeasurementFormPageState extends State<MeasurementFormPage> {
   void initState() {
     super.initState();
 
-    final e = widget.existing;
+    final existing = widget.existing;
 
-    for (final f in kMeasurementFields) {
-      _ctrls[f] = TextEditingController(
-        text: e?.values[f] ?? '',
+    for (final field in kMeasurementFields) {
+      _ctrls[field] = TextEditingController(
+        text: existing?.values[field] ?? '',
       );
     }
 
-    _photo = e?.photo;
-    _originalPhoto = e?.photo;
+    _photo = existing?.photo;
+    _originalPhoto = existing?.photo;
   }
 
   @override
   void dispose() {
-    for (final c in _ctrls.values) {
-      c.dispose();
+    for (final controller in _ctrls.values) {
+      controller.dispose();
     }
 
-    // Leaving without saving: delete photos copied during this session.
     if (!_saved) {
       for (final name in _newPhotos) {
         PhotoStore.delete(name);
@@ -459,22 +464,22 @@ class _MeasurementFormPageState extends State<MeasurementFormPage> {
     final s = AppScope.of(context);
 
     try {
-      final x = await _picker.pickImage(
+      final picked = await _picker.pickImage(
         source: source,
         imageQuality: 80,
         maxWidth: 2000,
         maxHeight: 2000,
       );
 
-      if (x == null) return;
+      if (picked == null) return;
 
-      final name = await PhotoStore.importFile(x.path);
+      final name = await PhotoStore.importFile(picked.path);
       _newPhotos.add(name);
 
       if (!mounted) return;
 
       setState(() => _photo = name);
-    } catch (e) {
+    } catch (_) {
       if (!mounted) return;
 
       showSnack(
@@ -483,58 +488,78 @@ class _MeasurementFormPageState extends State<MeasurementFormPage> {
             ? s.t(
                 'Could not open the camera. Check the camera permission.',
                 'ڪئميرا کلي نه سگهيو. ڪئميرا جي اجازت چيڪ ڪريو.',
+                'کیمرہ نہیں کھل سکا۔ کیمرے کی اجازت چیک کریں۔',
               )
             : s.t(
                 'Could not open the gallery. Check the photo permission.',
                 'گيلري کلي نه سگهي. فوٽو جي اجازت چيڪ ڪريو.',
+                'گیلری نہیں کھل سکی۔ تصاویر کی اجازت چیک کریں۔',
               ),
       );
     }
   }
 
-  void _removePhoto() => setState(() => _photo = null);
+  void _removePhoto() {
+    setState(() => _photo = null);
+  }
 
   Future<void> _save() async {
     if (_saving) return;
 
     setState(() => _saving = true);
 
-    final values = <String, String>{
-      for (final f in kMeasurementFields)
-        f: _ctrls[f]!.text.trim(),
-    };
+    try {
+      final values = <String, String>{
+        for (final field in kMeasurementFields)
+          field: _ctrls[field]!.text.trim(),
+      };
 
-    final e = widget.existing;
+      final existing = widget.existing;
 
-    if (e == null) {
-      await DB.instance.addMeasurement(
-        widget.customer.id,
-        values,
-        _photo,
-      );
-    } else {
-      await DB.instance.updateMeasurement(
-        e.id,
-        values,
-        _photo,
-      );
-    }
-
-    _saved = true;
-
-    // Remove photo files that are no longer used.
-    if (_originalPhoto != null && _originalPhoto != _photo) {
-      await DB.instance.releasePhoto(_originalPhoto);
-    }
-
-    for (final name in _newPhotos) {
-      if (name != _photo) {
-        await PhotoStore.delete(name);
+      if (existing == null) {
+        await DB.instance.addMeasurement(
+          widget.customer.id,
+          values,
+          _photo,
+        );
+      } else {
+        await DB.instance.updateMeasurement(
+          existing.id,
+          values,
+          _photo,
+        );
       }
-    }
 
-    if (mounted) {
-      Navigator.pop(context, true);
+      _saved = true;
+
+      if (_originalPhoto != null && _originalPhoto != _photo) {
+        await DB.instance.releasePhoto(_originalPhoto);
+      }
+
+      for (final name in _newPhotos) {
+        if (name != _photo) {
+          await PhotoStore.delete(name);
+        }
+      }
+
+      if (mounted) {
+        Navigator.pop(context, true);
+      }
+    } catch (_) {
+      if (!mounted) return;
+
+      final s = AppScope.of(context);
+
+      showSnack(
+        context,
+        s.t(
+          'Could not save the measurement. Please try again.',
+          'ماپ محفوظ نه ٿي سگهي. ٻيهر ڪوشش ڪريو.',
+          'پیمائش محفوظ نہیں ہو سکی۔ دوبارہ کوشش کریں۔',
+        ),
+      );
+
+      setState(() => _saving = false);
     }
   }
 
@@ -546,8 +571,12 @@ class _MeasurementFormPageState extends State<MeasurementFormPage> {
       appBar: AppBar(
         title: Text(
           widget.existing == null
-              ? s.t('New Measurement', 'نئين ماپ')
-              : s.t('Edit Measurement', 'ماپ تبديل ڪريو'),
+              ? s.t('New Measurement', 'نئين ماپ', 'نئی پیمائش')
+              : s.t(
+                  'Edit Measurement',
+                  'ماپ تبديل ڪريو',
+                  'پیمائش میں ترمیم',
+                ),
         ),
       ),
       body: ListView(
@@ -557,98 +586,74 @@ class _MeasurementFormPageState extends State<MeasurementFormPage> {
             widget.customer.name,
             style: Theme.of(context).textTheme.titleMedium,
           ),
-
           const SizedBox(height: 12),
-
-          for (final f in kMeasurementFields)
+          for (final field in kMeasurementFields)
             Padding(
               padding: const EdgeInsets.only(bottom: 10),
               child: TextField(
-                controller: _ctrls[f],
-
-                // Measurements are free text (e.g. 15.5, 15½),
-                // notes can be long.
-                keyboardType: f == 'notes'
+                controller: _ctrls[field],
+                keyboardType: field == 'notes'
                     ? TextInputType.multiline
                     : TextInputType.text,
-
-                maxLines: f == 'notes' ? 3 : 1,
-
+                maxLines: field == 'notes' ? 3 : 1,
                 decoration: InputDecoration(
-                  labelText: measurementLabel(
-                    f,
-                    s.sindhi,
-                  ),
+                  labelText: measurementLabel(field, s.sindhi),
                   border: const OutlineInputBorder(),
                 ),
               ),
             ),
-
           Row(
             children: [
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: () => _pick(
-                    ImageSource.camera,
-                  ),
+                  onPressed: () => _pick(ImageSource.camera),
                   icon: const Icon(Icons.camera_alt),
                   label: Text(
-                    s.t('Camera', 'ڪئميرا'),
+                    s.t('Camera', 'ڪئميرا', 'کیمرہ'),
                   ),
                 ),
               ),
-
               const SizedBox(width: 8),
-
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: () => _pick(
-                    ImageSource.gallery,
-                  ),
+                  onPressed: () => _pick(ImageSource.gallery),
                   icon: const Icon(Icons.photo_library),
                   label: Text(
-                    s.t('Gallery', 'گيلري'),
+                    s.t('Gallery', 'گيلري', 'گیلری'),
                   ),
                 ),
               ),
             ],
           ),
-
           if (_photo != null) ...[
             const SizedBox(height: 12),
-
             StoredPhoto(
               stored: _photo!,
               height: 220,
             ),
-
             Align(
               alignment: AlignmentDirectional.centerEnd,
               child: TextButton.icon(
                 onPressed: _removePhoto,
-                icon: const Icon(
-                  Icons.delete_outline,
-                ),
+                icon: const Icon(Icons.delete_outline),
                 label: Text(
-                  s.t(
-                    'Remove photo',
-                    'تصوير هٽايو',
-                  ),
+                  s.t('Remove photo', 'تصوير هٽايو', 'تصویر ہٹائیں'),
                 ),
               ),
             ),
           ],
-
           const SizedBox(height: 14),
-
           FilledButton.icon(
             onPressed: _saving ? null : _save,
             icon: const Icon(Icons.save),
             label: Text(
-              s.t(
-                'Save Measurement',
-                'محفوظ ڪريو',
-              ),
+              _saving
+                  ? s.t('Saving...', 'محفوظ ٿي رهيو آهي...', 'محفوظ ہو رہا ہے...')
+                  : s.t(
+                      'Save Measurement',
+                      'محفوظ ڪريو',
+                      'پیمائش محفوظ کریں',
+                    ),
             ),
           ),
         ],
