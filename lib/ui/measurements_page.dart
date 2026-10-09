@@ -41,11 +41,52 @@ IconData _measurementIcon(String field) {
   }
 }
 
+/// Shows the measurement illustration.
+/// If an image is unavailable, the original icon is shown instead.
+Widget _measurementIllustration(
+  String field, {
+  double size = 42,
+  Color iconColor = _measurementBrown,
+}) {
+  if (field == 'notes') {
+    return SizedBox(
+      width: size,
+      height: size,
+      child: Icon(
+        _measurementIcon(field),
+        color: iconColor,
+        size: size * 0.58,
+      ),
+    );
+  }
+
+  return SizedBox(
+    width: size,
+    height: size,
+    child: Image.asset(
+      'assets/measurements/$field.jpg',
+      width: size,
+      height: size,
+      fit: BoxFit.contain,
+      errorBuilder: (context, error, stackTrace) {
+        return Icon(
+          _measurementIcon(field),
+          color: iconColor,
+          size: size * 0.58,
+        );
+      },
+    ),
+  );
+}
+
 /// Saved measurements of one customer (newest first) + add / edit.
 class MeasurementsPage extends StatefulWidget {
   final Customer customer;
 
-  const MeasurementsPage({super.key, required this.customer});
+  const MeasurementsPage({
+    super.key,
+    required this.customer,
+  });
 
   @override
   State<MeasurementsPage> createState() => _MeasurementsPageState();
@@ -117,7 +158,9 @@ class _MeasurementsPageState extends State<MeasurementsPage> {
   }
 
   /// Opens a PDF preview for one measurement.
-  Future<void> _printMeasurement(MeasurementRecord measurement) async {
+  Future<void> _printMeasurement(
+    MeasurementRecord measurement,
+  ) async {
     Uint8List? photoBytes;
 
     if (measurement.photo != null) {
@@ -166,7 +209,8 @@ class _MeasurementsPageState extends State<MeasurementsPage> {
 
     final filled = kMeasurementFields
         .where(
-          (field) => (measurement.values[field] ?? '').trim().isNotEmpty,
+          (field) =>
+              (measurement.values[field] ?? '').trim().isNotEmpty,
         )
         .toList();
 
@@ -253,17 +297,23 @@ class _MeasurementsPageState extends State<MeasurementsPage> {
                         children: [
                           pw.Padding(
                             padding: const pw.EdgeInsets.all(7),
-                            child: pw.Text(measurementLabel(field, 'en')),
+                            child: pw.Text(
+                              measurementLabel(field, 'en'),
+                            ),
                           ),
                           pw.Padding(
                             padding: const pw.EdgeInsets.all(7),
-                            child: pw.Text(measurement.values[field] ?? ''),
+                            child: pw.Text(
+                              measurement.values[field] ?? '',
+                            ),
                           ),
                         ],
                       ),
                   ],
                 ),
-              if ((measurement.values['notes'] ?? '').trim().isNotEmpty) ...[
+              if ((measurement.values['notes'] ?? '')
+                  .trim()
+                  .isNotEmpty) ...[
                 pw.SizedBox(height: 18),
                 pw.Text(
                   'Notes',
@@ -277,9 +327,13 @@ class _MeasurementsPageState extends State<MeasurementsPage> {
                   width: double.infinity,
                   padding: const pw.EdgeInsets.all(8),
                   decoration: pw.BoxDecoration(
-                    border: pw.Border.all(color: PdfColors.grey500),
+                    border: pw.Border.all(
+                      color: PdfColors.grey500,
+                    ),
                   ),
-                  child: pw.Text(measurement.values['notes']!.trim()),
+                  child: pw.Text(
+                    measurement.values['notes']!.trim(),
+                  ),
                 ),
               ],
               if (photoImage != null) ...[
@@ -330,7 +384,9 @@ class _MeasurementsPageState extends State<MeasurementsPage> {
       ),
       body: _loading
           ? const Center(
-              child: CircularProgressIndicator(color: _measurementBrown),
+              child: CircularProgressIndicator(
+                color: _measurementBrown,
+              ),
             )
           : _items.isEmpty
               ? Center(
@@ -371,9 +427,17 @@ class _MeasurementsPageState extends State<MeasurementsPage> {
                   ),
                 )
               : ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(14, 12, 14, 100),
+                  padding: const EdgeInsets.fromLTRB(
+                    14,
+                    12,
+                    14,
+                    100,
+                  ),
                   itemCount: _items.length,
-                  itemBuilder: (_, index) => _card(s, _items[index]),
+                  itemBuilder: (_, index) => _card(
+                    s,
+                    _items[index],
+                  ),
                 ),
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: _measurementBrown,
@@ -385,10 +449,14 @@ class _MeasurementsPageState extends State<MeasurementsPage> {
     );
   }
 
-  Widget _card(AppSettings s, MeasurementRecord measurement) {
+  Widget _card(
+    AppSettings s,
+    MeasurementRecord measurement,
+  ) {
     final filled = kMeasurementFields
         .where(
-          (field) => (measurement.values[field] ?? '').trim().isNotEmpty,
+          (field) =>
+              (measurement.values[field] ?? '').trim().isNotEmpty,
         )
         .toList();
 
@@ -427,7 +495,11 @@ class _MeasurementsPageState extends State<MeasurementsPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        s.t('Measurement Record', 'ماپ جو رڪارڊ', 'پیمائش کا ریکارڈ'),
+                        s.t(
+                          'Measurement Record',
+                          'ماپ جو رڪارڊ',
+                          'پیمائش کا ریکارڈ',
+                        ),
                         style: const TextStyle(
                           color: _measurementDarkBrown,
                           fontWeight: FontWeight.bold,
@@ -438,7 +510,9 @@ class _MeasurementsPageState extends State<MeasurementsPage> {
                       Text(
                         fmtDate(measurement.createdAt),
                         style: TextStyle(
-                          color: _measurementDarkBrown.withValues(alpha: 0.75),
+                          color: _measurementDarkBrown.withValues(
+                            alpha: 0.75,
+                          ),
                           fontSize: 12,
                         ),
                       ),
@@ -458,7 +532,11 @@ class _MeasurementsPageState extends State<MeasurementsPage> {
                   color: _measurementBrown,
                 ),
                 IconButton(
-                  tooltip: s.t('Delete', 'ڊيليٽ', 'حذف کریں'),
+                  tooltip: s.t(
+                    'Delete',
+                    'ڊيليٽ',
+                    'حذف کریں',
+                  ),
                   onPressed: () => _delete(measurement),
                   icon: const Icon(Icons.delete_outline_rounded),
                   color: Colors.red.shade700,
@@ -479,7 +557,9 @@ class _MeasurementsPageState extends State<MeasurementsPage> {
                         'خالي ماپ',
                         'خالی پیمائش',
                       ),
-                      style: const TextStyle(color: Colors.black54),
+                      style: const TextStyle(
+                        color: Colors.black54,
+                      ),
                     ),
                   ),
                 for (var i = 0; i < filled.length; i++)
@@ -508,7 +588,9 @@ class _MeasurementsPageState extends State<MeasurementsPage> {
                   const SizedBox(height: 8),
                   ClipRRect(
                     borderRadius: BorderRadius.circular(14),
-                    child: StoredPhoto(stored: measurement.photo!),
+                    child: StoredPhoto(
+                      stored: measurement.photo!,
+                    ),
                   ),
                 ],
               ],
@@ -528,7 +610,10 @@ class _MeasurementsPageState extends State<MeasurementsPage> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        padding: const EdgeInsets.symmetric(
+          horizontal: 10,
+          vertical: 10,
+        ),
         decoration: BoxDecoration(
           color: _measurementCream.withValues(alpha: 0.75),
           borderRadius: BorderRadius.circular(14),
@@ -539,16 +624,16 @@ class _MeasurementsPageState extends State<MeasurementsPage> {
         child: Row(
           children: [
             Container(
-              width: 38,
-              height: 38,
+              width: 44,
+              height: 44,
+              padding: const EdgeInsets.all(3),
               decoration: BoxDecoration(
-                color: _measurementSoftBrown.withValues(alpha: 0.8),
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(11),
               ),
-              child: Icon(
-                _measurementIcon(field),
-                color: _measurementBrown,
-                size: 21,
+              child: _measurementIllustration(
+                field,
+                size: 38,
               ),
             ),
             const SizedBox(width: 10),
@@ -603,7 +688,8 @@ class MeasurementFormPage extends StatefulWidget {
   });
 
   @override
-  State<MeasurementFormPage> createState() => _MeasurementFormPageState();
+  State<MeasurementFormPage> createState() =>
+      _MeasurementFormPageState();
 }
 
 class _MeasurementFormPageState extends State<MeasurementFormPage> {
@@ -768,17 +854,17 @@ class _MeasurementFormPageState extends State<MeasurementFormPage> {
             : CrossAxisAlignment.center,
         children: [
           Container(
-            width: 43,
-            height: 43,
+            width: 49,
+            height: 49,
             margin: EdgeInsets.only(top: isNotes ? 10 : 0),
+            padding: const EdgeInsets.all(3),
             decoration: BoxDecoration(
               color: _measurementCream,
               borderRadius: BorderRadius.circular(13),
             ),
-            child: Icon(
-              _measurementIcon(field),
-              color: _measurementBrown,
-              size: 23,
+            child: _measurementIllustration(
+              field,
+              size: 43,
             ),
           ),
           const SizedBox(width: 12),
@@ -789,8 +875,9 @@ class _MeasurementFormPageState extends State<MeasurementFormPage> {
                   ? TextInputType.multiline
                   : TextInputType.text,
               maxLines: isNotes ? 3 : 1,
-              textInputAction:
-                  isNotes ? TextInputAction.newline : TextInputAction.next,
+              textInputAction: isNotes
+                  ? TextInputAction.newline
+                  : TextInputAction.next,
               decoration: InputDecoration(
                 labelText: measurementLabel(field, s.language),
                 hintText: isNotes
@@ -835,7 +922,11 @@ class _MeasurementFormPageState extends State<MeasurementFormPage> {
                   'ماپ تبديل ڪريو',
                   'پیمائش میں ترمیم',
                 )
-              : s.t('New Measurement', 'نئين ماپ', 'نئی پیمائش'),
+              : s.t(
+                  'New Measurement',
+                  'نئين ماپ',
+                  'نئی پیمائش',
+                ),
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
       ),
@@ -892,7 +983,11 @@ class _MeasurementFormPageState extends State<MeasurementFormPage> {
           ),
           const SizedBox(height: 22),
           Text(
-            s.t('Body Measurements', 'جسم جون ماپون', 'جسم کی پیمائش'),
+            s.t(
+              'Body Measurements',
+              'جسم جون ماپون',
+              'جسم کی پیمائش',
+            ),
             style: const TextStyle(
               fontSize: 17,
               color: _measurementDarkBrown,
@@ -914,10 +1009,15 @@ class _MeasurementFormPageState extends State<MeasurementFormPage> {
               ),
             ),
           ),
-          for (final field in kMeasurementFields) _buildField(field, s),
+          for (final field in kMeasurementFields)
+            _buildField(field, s),
           const SizedBox(height: 5),
           Text(
-            s.t('Measurement Photo', 'ماپ جي تصوير', 'پیمائش کی تصویر'),
+            s.t(
+              'Measurement Photo',
+              'ماپ جي تصوير',
+              'پیمائش کی تصویر',
+            ),
             style: const TextStyle(
               fontSize: 17,
               color: _measurementDarkBrown,
@@ -941,12 +1041,15 @@ class _MeasurementFormPageState extends State<MeasurementFormPage> {
             children: [
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: _saving ? null : () => _pick(ImageSource.camera),
+                  onPressed:
+                      _saving ? null : () => _pick(ImageSource.camera),
                   icon: const Icon(Icons.camera_alt_outlined),
                   label: Text(s.t('Camera', 'ڪئميرا', 'کیمرہ')),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: _measurementBrown,
-                    side: const BorderSide(color: _measurementBrown),
+                    side: const BorderSide(
+                      color: _measurementBrown,
+                    ),
                     padding: const EdgeInsets.symmetric(vertical: 13),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
@@ -957,12 +1060,15 @@ class _MeasurementFormPageState extends State<MeasurementFormPage> {
               const SizedBox(width: 10),
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: _saving ? null : () => _pick(ImageSource.gallery),
+                  onPressed:
+                      _saving ? null : () => _pick(ImageSource.gallery),
                   icon: const Icon(Icons.photo_library_outlined),
                   label: Text(s.t('Gallery', 'گيلري', 'گیلری')),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: _measurementBrown,
-                    side: const BorderSide(color: _measurementBrown),
+                    side: const BorderSide(
+                      color: _measurementBrown,
+                    ),
                     padding: const EdgeInsets.symmetric(vertical: 13),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
