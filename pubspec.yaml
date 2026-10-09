@@ -43,6 +43,7 @@ flutter:
 
   assets:
     - logo.png
+    - assets/measurements/
 
 flutter_launcher_icons:
   android: true
