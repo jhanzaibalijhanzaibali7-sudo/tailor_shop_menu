@@ -1,72 +1,85 @@
-import 'package:flutter/widgets.dart';
+
+import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// App-wide settings (UI language + voice recognition language).
-///
-/// Persisted with shared_preferences. The old `sindhi` key from v3 is reused,
-/// so users keep their language choice after updating.
 class AppSettings extends ChangeNotifier {
-  bool sindhi = false;
+  static const String _languageKey = 'language';
+  static const String _legacySindhiKey = 'sindhi';
 
-  /// One of: auto, sd, ur, hi, en
+  String _language = 'en';
+
+  String get language => _language;
+
+  bool get sindhi => _language == 'sd';
+
+  set sindhi(bool value) {
+    setLanguage(value ? 'sd' : 'en');
+  }
+
   String voiceLang = 'auto';
-
-  /// When a backup was last shared/saved by the user (null = never).
   DateTime? lastBackup;
 
   Future<void> load() async {
     final prefs = await SharedPreferences.getInstance();
-    sindhi = prefs.getBool('sindhi') ?? false;
+
+    // Purani saved language setting ko bhi support karein.
+    final savedLanguage = prefs.getString(_languageKey);
+
+    if (savedLanguage != null &&
+        ['en', 'sd', 'ur'].contains(savedLanguage)) {
+      _language = savedLanguage;
+    } else {
+      _language = prefs.getBool(_legacySindhiKey) == true
+          ? 'sd'
+          : 'en';
+    }
+
     voiceLang = prefs.getString('voice_lang') ?? 'auto';
-    final raw = prefs.getString('last_backup');
-    lastBackup = raw == null ? null : DateTime.tryParse(raw);
+
+    final backupValue = prefs.getString('last_backup');
+    lastBackup = backupValue == null
+        ? null
+        : DateTime.tryParse(backupValue);
   }
 
-  /// True when there was no backup yet or the last one is over a week old.
-  bool get backupOverdue {
-    final last = lastBackup;
-    return last == null || DateTime.now().difference(last).inDays >= 7;
-  }
+  Future<void> setLanguage(String value) async {
+    if (!['en', 'sd', 'ur'].contains(value)) {
+      return;
+    }
 
-  Future<void> markBackup() async {
-    lastBackup = DateTime.now();
-    notifyListeners();
+    if (_language == value) return;
+
+    _language = value;
+
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('last_backup', lastBackup!.toIso8601String());
+    await prefs.setString(_languageKey, value);
+    await prefs.setBool(_legacySindhiKey, value == 'sd');
+
+    notifyListeners();
   }
 
   Future<void> toggleLanguage() async {
-    sindhi = !sindhi;
-    notifyListeners();
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('sindhi', sindhi);
+    await setLanguage(_language == 'sd' ? 'en' : 'sd');
   }
 
-  Future<void> setVoiceLang(String value) async {
-    voiceLang = value;
-    notifyListeners();
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('voice_lang', value);
+  String t(String en, String sd, [String? ur]) {
+    switch (_language) {
+      case 'sd':
+        return sd;
+      case 'ur':
+        return ur ?? en;
+      default:
+        return en;
+    }
   }
 
-  /// Pick the English or Sindhi text depending on the current language.
-  String t(String en, String sd) => sindhi ? sd : en;
+  TextDirection get direction {
+    return _language == 'en'
+        ? TextDirection.ltr
+        : TextDirection.rtl;
+  }
 
-  TextDirection get direction => sindhi ? TextDirection.rtl : TextDirection.ltr;
-}
-
-/// Makes [AppSettings] available to the whole widget tree (including dialogs
-/// and bottom sheets, which live under the Navigator).
-class AppScope extends InheritedNotifier<AppSettings> {
-  const AppScope({
-    super.key,
-    required AppSettings settings,
-    required super.child,
-  }) : super(notifier: settings);
-
-  static AppSettings of(BuildContext context) {
-    final scope = context.dependOnInheritedWidgetOfExactType<AppScope>();
-    assert(scope != null, 'AppScope not found in widget tree');
-    return scope!.notifier!;
+  Locale get locale {
+    return Locale(_language);
   }
 }
