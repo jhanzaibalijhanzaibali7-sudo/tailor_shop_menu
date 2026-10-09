@@ -1,3 +1,4 @@
+
 import 'dart:async';
 import 'dart:io';
 
@@ -28,8 +29,6 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  // ------------------------------------------------------------- theme
-
   static const Color mainBrown = Color(0xFF6B4F3A);
   static const Color darkBrown = Color(0xFF4E342E);
   static const Color lightBrown = Color(0xFFF5EDE3);
@@ -69,7 +68,7 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-  // ------------------------------------------------------------ navigation
+  // Navigation
 
   Future<void> _openOrders(Customer c) async {
     await Navigator.push(
@@ -93,7 +92,69 @@ class _HomePageState extends State<HomePage> {
     if (mounted) _load();
   }
 
-  // ------------------------------------------------------------- customers
+  // Language selector
+
+  Future<void> _pickAppLanguage() async {
+    final s = AppScope.of(context);
+
+    final picked = await showDialog<String>(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        backgroundColor: lightBrown,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(18),
+        ),
+        title: Text(
+          s.t('Choose app language', 'ايپ جي ٻولي چونڊيو', 'ایپ کی زبان منتخب کریں'),
+          style: const TextStyle(
+            color: darkBrown,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        children: [
+          _languageOption(ctx, 'en', 'English', '🇬🇧', s.language),
+          _languageOption(ctx, 'sd', 'سنڌي', '🇵🇰', s.language),
+          _languageOption(ctx, 'ur', 'اردو', '🇵🇰', s.language),
+        ],
+      ),
+    );
+
+    if (picked != null) {
+      await s.setLanguage(picked);
+    }
+  }
+
+  Widget _languageOption(
+    BuildContext ctx,
+    String code,
+    String label,
+    String flag,
+    String selectedLanguage,
+  ) {
+    return SimpleDialogOption(
+      onPressed: () => Navigator.pop(ctx, code),
+      child: Row(
+        children: [
+          Text(flag, style: const TextStyle(fontSize: 20)),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(
+                color: darkBrown,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          if (selectedLanguage == code)
+            const Icon(Icons.check_circle, color: mainBrown),
+        ],
+      ),
+    );
+  }
+
+  // Customers
 
   Future<void> _editCustomer([Customer? existing]) async {
     final input = await showDialog<_CustomerInput>(
@@ -126,18 +187,13 @@ class _HomePageState extends State<HomePage> {
 
     final ok = await confirmDialog(
       context,
-      title: s.t(
-        'Delete customer',
-        'گراهڪ ڊيليٽ ڪريو',
-      ),
+      title: s.t('Delete customer', 'گراهڪ ڊيليٽ ڪريو', 'گاہک حذف کریں'),
       message: s.t(
         'Delete ${c.name} with all measurements, photos and orders? This cannot be undone.',
         '${c.name} کي سڀني ماپن، تصويرن ۽ آرڊرن سميت ڊيليٽ ڪجي؟ هي واپس نه ٿيندو.',
+        'کیا ${c.name} کو تمام پیمائشوں، تصاویر اور آرڈرز سمیت حذف کرنا ہے؟ یہ عمل واپس نہیں ہو سکتا۔',
       ),
-      confirmLabel: s.t(
-        'Delete',
-        'ڊيليٽ',
-      ),
+      confirmLabel: s.t('Delete', 'ڊيليٽ', 'حذف کریں'),
       destructive: true,
     );
 
@@ -148,25 +204,20 @@ class _HomePageState extends State<HomePage> {
     if (mounted) _load();
   }
 
-  // ------------------------------------------------------------- sign out
+  // Sign out
 
   Future<void> _signOut() async {
     final s = AppScope.of(context);
 
     final ok = await confirmDialog(
       context,
-      title: s.t(
-        'Sign Out',
-        'سائن آئوٽ',
-      ),
+      title: s.t('Sign Out', 'سائن آئوٽ', 'سائن آؤٹ'),
       message: s.t(
         'Are you sure you want to sign out?',
         'ڇا توهان واقعي سائن آئوٽ ڪرڻ چاهيو ٿا؟',
+        'کیا آپ واقعی سائن آؤٹ کرنا چاہتے ہیں؟',
       ),
-      confirmLabel: s.t(
-        'Sign Out',
-        'سائن آئوٽ',
-      ),
+      confirmLabel: s.t('Sign Out', 'سائن آئوٽ', 'سائن آؤٹ'),
       destructive: true,
     );
 
@@ -187,16 +238,14 @@ class _HomePageState extends State<HomePage> {
       if (mounted) {
         showSnack(
           context,
-          '${s.t('Sign out failed', 'سائن آئوٽ ناڪام')}: $e',
+          '${s.t('Sign out failed', 'سائن آئوٽ ناڪام', 'سائن آؤٹ ناکام')}: $e',
         );
       }
     }
   }
 
-  // ----------------------------------------------------------------- voice
+  // Voice commands
 
-  /// [commandMode] false = voice search (fills the search box),
-  /// true = voice command (opens the right screen).
   Future<void> _listen({required bool commandMode}) async {
     if (_listening) {
       await _voice.stop();
@@ -213,9 +262,7 @@ class _HomePageState extends State<HomePage> {
     final result = await _voice.listenOnce(
       localePref: s.voiceLang,
       onPartial: (w) {
-        if (mounted) {
-          setState(() => _heard = w);
-        }
+        if (mounted) setState(() => _heard = w);
       },
     );
 
@@ -230,10 +277,12 @@ class _HomePageState extends State<HomePage> {
             ? s.t(
                 'Microphone permission is needed for voice.',
                 'آواز لاءِ مائيڪروفون جي اجازت گهرجي.',
+                'آواز کے لیے مائیکروفون کی اجازت درکار ہے۔',
               )
             : s.t(
                 "Couldn't hear anything. Please try again.",
                 'ڪجهه ٻڌي نه سگهيس. ٻيهر ڪوشش ڪريو.',
+                'کچھ سنائی نہیں دیا۔ دوبارہ کوشش کریں۔',
               ),
       );
       return;
@@ -241,8 +290,7 @@ class _HomePageState extends State<HomePage> {
 
     final names = await DB.instance.customerNames();
     final refs = [
-      for (final n in names)
-        VoiceCustomerRef(n.id, n.name),
+      for (final n in names) VoiceCustomerRef(n.id, n.name),
     ];
 
     final cmd = VoiceCommandParser.parseBest(
@@ -258,25 +306,21 @@ class _HomePageState extends State<HomePage> {
           : result.transcripts.first;
 
       _search.text = words;
-
       await _load();
 
       if (!mounted) return;
 
       showSnack(
         context,
-        '${s.t('Customer not found', 'گراهڪ نه مليو')}: '
+        '${s.t('Customer not found', 'گراهڪ نه مليو', 'گاہک نہیں ملا')}: '
         '${result.transcripts.first}',
       );
-
       return;
     }
 
     if (!commandMode) {
       _search.text = cmd.best!.customer.name;
-
       await _load();
-
       return;
     }
 
@@ -284,23 +328,18 @@ class _HomePageState extends State<HomePage> {
 
     if (cmd.isAmbiguous) {
       final picked = await _chooseCustomer(cmd.matches);
-
       if (picked == null || !mounted) return;
-
       chosen = picked;
     }
 
     final customer = await DB.instance.customerById(chosen.id);
-
     if (customer == null || !mounted) return;
 
     switch (cmd.intent) {
       case VoiceIntent.showMeasurements:
         await _openMeasurements(customer);
-
       case VoiceIntent.showBalance:
         await showBalanceSheet(context, customer);
-
       case VoiceIntent.openOrders:
       case VoiceIntent.none:
         await _openOrders(customer);
@@ -316,18 +355,12 @@ class _HomePageState extends State<HomePage> {
       context: context,
       builder: (ctx) => SimpleDialog(
         title: Text(
-          s.t(
-            'Which customer?',
-            'ڪهڙو گراهڪ؟',
-          ),
+          s.t('Which customer?', 'ڪهڙو گراهڪ؟', 'کون سا گاہک؟'),
         ),
         children: [
           for (final m in matches)
             SimpleDialogOption(
-              onPressed: () => Navigator.pop(
-                ctx,
-                m.customer,
-              ),
+              onPressed: () => Navigator.pop(ctx, m.customer),
               child: Text(m.customer.name),
             ),
         ],
@@ -339,10 +372,7 @@ class _HomePageState extends State<HomePage> {
     final s = AppScope.of(context);
 
     final options = <String, String>{
-      'auto': s.t(
-        'Automatic (recommended)',
-        'خودڪار (بهتر)',
-      ),
+      'auto': s.t('Automatic (recommended)', 'خودڪار (بهتر)', 'خودکار (تجویز کردہ)'),
       'sd': 'سنڌي (Sindhi)',
       'ur': 'اردو (Urdu)',
       'hi': 'हिन्दी (Hindi)',
@@ -353,28 +383,17 @@ class _HomePageState extends State<HomePage> {
       context: context,
       builder: (ctx) => SimpleDialog(
         title: Text(
-          s.t(
-            'Voice recognition language',
-            'آواز سڃاڻڻ جي ٻولي',
-          ),
+          s.t('Voice recognition language', 'آواز سڃاڻڻ جي ٻولي', 'آواز پہچاننے کی زبان'),
         ),
         children: [
           for (final e in options.entries)
             SimpleDialogOption(
-              onPressed: () => Navigator.pop(
-                ctx,
-                e.key,
-              ),
+              onPressed: () => Navigator.pop(ctx, e.key),
               child: Row(
                 children: [
-                  Expanded(
-                    child: Text(e.value),
-                  ),
+                  Expanded(child: Text(e.value)),
                   if (s.voiceLang == e.key)
-                    const Icon(
-                      Icons.check,
-                      color: mainBrown,
-                    ),
+                    const Icon(Icons.check, color: mainBrown),
                 ],
               ),
             ),
@@ -394,22 +413,17 @@ class _HomePageState extends State<HomePage> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(
-          s.t(
-            'Voice commands',
-            'آواز جا حڪم',
-          ),
+          s.t('Voice commands', 'آواز جا حڪم', 'آواز کے احکامات'),
         ),
-        content: SingleChildScrollView(
+        content: const SingleChildScrollView(
           child: Directionality(
             textDirection: TextDirection.ltr,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
+              children: [
                 Text(
                   'Measurement / ماپ',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontWeight: FontWeight.bold),
                 ),
                 Text(
                   '"Jahanzeb ji maap"\n'
@@ -421,9 +435,7 @@ class _HomePageState extends State<HomePage> {
                 SizedBox(height: 12),
                 Text(
                   'Order / آرڊر',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontWeight: FontWeight.bold),
                 ),
                 Text(
                   '"Jahanzeb jo order kholo"\n'
@@ -434,9 +446,7 @@ class _HomePageState extends State<HomePage> {
                 SizedBox(height: 12),
                 Text(
                   'Balance / باقي',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontWeight: FontWeight.bold),
                 ),
                 Text(
                   '"Jahanzeb te ketro paiso baqi aa"\n'
@@ -450,35 +460,28 @@ class _HomePageState extends State<HomePage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text(
-              s.t(
-                'Close',
-                'بند',
-              ),
-            ),
+            child: Text(s.t('Close', 'بند', 'بند کریں')),
           ),
         ],
       ),
     );
   }
 
-  // ------------------------------------------------------- backup / restore
+  // Backup / restore
 
   Future<void> _backup() async {
     final s = AppScope.of(context);
 
     try {
       final dir = await getTemporaryDirectory();
-
-      final file = await BackupService.createBackup(
-        dir: dir,
-      );
+      final file = await BackupService.createBackup(dir: dir);
 
       final result = await Share.shareXFiles(
         [XFile(file.path)],
         text: s.t(
           'Tailor shop backup',
           'درزي دڪان جو بيڪ اپ',
+          'ٹیلر شاپ بیک اپ',
         ),
       );
 
@@ -489,7 +492,7 @@ class _HomePageState extends State<HomePage> {
       if (mounted) {
         showSnack(
           context,
-          '${s.t('Backup failed', 'بيڪ اپ ناڪام')}: $e',
+          '${s.t('Backup failed', 'بيڪ اپ ناڪام', 'بیک اپ ناکام')}: $e',
         );
       }
     }
@@ -506,23 +509,17 @@ class _HomePageState extends State<HomePage> {
     if (picked == null || picked.files.isEmpty) return;
 
     final path = picked.files.first.path;
-
     if (path == null || !mounted) return;
 
     final ok = await confirmDialog(
       context,
-      title: s.t(
-        'Restore backup',
-        'بيڪ اپ بحال ڪريو',
-      ),
+      title: s.t('Restore backup', 'بيڪ اپ بحال ڪريو', 'بیک اپ بحال کریں'),
       message: s.t(
         'All current customers, measurements, photos and orders will be replaced by the backup. A safety copy of the current data is saved first. Continue?',
         'موجوده سڀ گراهڪ، ماپون، تصويرون ۽ آرڊر بيڪ اپ سان مٽجي ويندا. پهرين موجوده ڊيٽا جي حفاظتي ڪاپي محفوظ ٿيندي. اڳتي هلون؟',
+        'تمام موجودہ گاہک، پیمائشیں، تصاویر اور آرڈرز بیک اپ سے بدل جائیں گے۔ پہلے موجودہ ڈیٹا کی حفاظتی کاپی بنائی جائے گی۔ کیا جاری رکھیں؟',
       ),
-      confirmLabel: s.t(
-        'Restore',
-        'بحال ڪريو',
-      ),
+      confirmLabel: s.t('Restore', 'بحال ڪريو', 'بحال کریں'),
       destructive: true,
     );
 
@@ -538,27 +535,24 @@ class _HomePageState extends State<HomePage> {
 
       await BackupService.pruneAutoBackups(autoDir);
 
-      final r = await BackupService.restore(
-        File(path),
-      );
-
+      final r = await BackupService.restore(File(path));
       await _load();
 
       if (!mounted) return;
 
       showSnack(
         context,
-        '${s.t('Restore complete', 'بحالي مڪمل ٿي وئي')}: '
-        '${r.customers} ${s.t('customers', 'گراهڪ')}, '
-        '${r.orders} ${s.t('orders', 'آرڊر')}, '
-        '${r.photos} ${s.t('photos', 'تصويرون')}',
+        '${s.t('Restore complete', 'بحالي مڪمل ٿي وئي', 'بحالی مکمل ہوگئی')}: '
+        '${r.customers} ${s.t('customers', 'گراهڪ', 'گاہک')}, '
+        '${r.orders} ${s.t('orders', 'آرڊر', 'آرڈرز')}, '
+        '${r.photos} ${s.t('photos', 'تصويرون', 'تصاویر')}',
       );
     } on FormatException catch (e) {
       if (mounted) {
         showSnack(
           context,
-          '${s.t('Restore failed', 'بحالي ناڪام')}: '
-          '${s.t('this is not a valid backup file', 'هيءَ صحيح بيڪ اپ فائل ناهي')} '
+          '${s.t('Restore failed', 'بحالي ناڪام', 'بحالی ناکام')}: '
+          '${s.t('this is not a valid backup file', 'هيءَ صحيح بيڪ اپ فائل ناهي', 'یہ درست بیک اپ فائل نہیں ہے')} '
           '(${e.message})',
         );
       }
@@ -566,13 +560,13 @@ class _HomePageState extends State<HomePage> {
       if (mounted) {
         showSnack(
           context,
-          '${s.t('Restore failed', 'بحالي ناڪام')}: $e',
+          '${s.t('Restore failed', 'بحالي ناڪام', 'بحالی ناکام')}: $e',
         );
       }
     }
   }
 
-  // --------------------------------------------------------- modern menu
+  // Menu item design
 
   Widget _modernMenuItem({
     required IconData icon,
@@ -586,11 +580,7 @@ class _HomePageState extends State<HomePage> {
             color: softBrown,
             borderRadius: BorderRadius.circular(10),
           ),
-          child: Icon(
-            icon,
-            color: mainBrown,
-            size: 21,
-          ),
+          child: Icon(icon, color: mainBrown, size: 21),
         ),
         const SizedBox(width: 12),
         Expanded(
@@ -607,7 +597,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // ------------------------------------------------------------------- build
+  // Build
 
   @override
   Widget build(BuildContext context) {
@@ -615,47 +605,36 @@ class _HomePageState extends State<HomePage> {
 
     return Scaffold(
       backgroundColor: lightBrown,
-
       appBar: AppBar(
         backgroundColor: darkBrown,
         foregroundColor: Colors.white,
         elevation: 2,
-
         centerTitle: true,
-        title: const Text(
-          'Tailor Shop',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 22,
-            letterSpacing: 0.5,
-          ),
+        title: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.content_cut_rounded, size: 25),
+            SizedBox(width: 9),
+            Text(
+              'Tailor Shop',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 22,
+                letterSpacing: 0.3,
+              ),
+            ),
+          ],
         ),
-
         actions: [
-          TextButton(
-            onPressed: s.toggleLanguage,
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.white,
-            ),
-            child: Text(
-              s.sindhi ? 'English' : 'سنڌي',
-              style: const TextStyle(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
+          IconButton(
+            tooltip: s.t('App language', 'ايپ جي ٻولي', 'ایپ کی زبان'),
+            onPressed: _pickAppLanguage,
+            icon: const Icon(Icons.translate_rounded),
           ),
-
-          const SizedBox(width: 4),
-
           Padding(
-            padding: const EdgeInsets.only(
-              right: 10,
-            ),
+            padding: const EdgeInsets.only(right: 10),
             child: PopupMenuButton<String>(
-              tooltip: s.t(
-                'Menu',
-                'مينيو',
-              ),
+              tooltip: s.t('Menu', 'مينيو', 'مینو'),
               offset: const Offset(0, 8),
               elevation: 8,
               color: lightBrown,
@@ -684,13 +663,10 @@ class _HomePageState extends State<HomePage> {
                         builder: (_) => const ProfilePage(),
                       ),
                     );
-
                   case 'backup':
                     _backup();
-
                   case 'restore':
                     _restore();
-
                   case 'reports':
                     Navigator.push(
                       context,
@@ -698,15 +674,14 @@ class _HomePageState extends State<HomePage> {
                         builder: (_) => const ReportsPage(),
                       ),
                     );
-
                   case 'voice_lang':
                     _pickVoiceLanguage();
-
                   case 'voice_help':
                     _showVoiceHelp();
-
                   case 'sign_out':
                     _signOut();
+                  case 'app_language':
+                    _pickAppLanguage();
                 }
               },
               itemBuilder: (_) => [
@@ -731,8 +706,9 @@ class _HomePageState extends State<HomePage> {
                       Expanded(
                         child: Text(
                           s.t(
-                            'Max Tailor',
-                            'ميڪس درزي',
+                            'Tailor Shop',
+                            'درزي جو دڪان',
+                            'ٹیلر شاپ',
                           ),
                           style: const TextStyle(
                             color: darkBrown,
@@ -744,53 +720,42 @@ class _HomePageState extends State<HomePage> {
                     ],
                   ),
                 ),
-
                 const PopupMenuDivider(),
-
+                PopupMenuItem<String>(
+                  value: 'app_language',
+                  child: _modernMenuItem(
+                    icon: Icons.translate_rounded,
+                    title: s.t('App language', 'ايپ جي ٻولي', 'ایپ کی زبان'),
+                  ),
+                ),
                 PopupMenuItem<String>(
                   value: 'profile',
                   child: _modernMenuItem(
                     icon: Icons.person_rounded,
-                    title: s.t(
-                      'Profile',
-                      'پروفائل',
-                    ),
+                    title: s.t('Profile', 'پروفائل', 'پروفائل'),
                   ),
                 ),
-
                 PopupMenuItem<String>(
                   value: 'reports',
                   child: _modernMenuItem(
                     icon: Icons.bar_chart_rounded,
-                    title: s.t(
-                      'Reports',
-                      'رپورٽون',
-                    ),
+                    title: s.t('Reports', 'رپورٽون', 'رپورٹس'),
                   ),
                 ),
-
                 PopupMenuItem<String>(
                   value: 'backup',
                   child: _modernMenuItem(
                     icon: Icons.cloud_upload_rounded,
-                    title: s.t(
-                      'Backup',
-                      'بيڪ اپ',
-                    ),
+                    title: s.t('Backup', 'بيڪ اپ', 'بیک اپ'),
                   ),
                 ),
-
                 PopupMenuItem<String>(
                   value: 'restore',
                   child: _modernMenuItem(
                     icon: Icons.cloud_download_rounded,
-                    title: s.t(
-                      'Restore',
-                      'بحال ڪريو',
-                    ),
+                    title: s.t('Restore', 'بحال ڪريو', 'بحال کریں'),
                   ),
                 ),
-
                 PopupMenuItem<String>(
                   enabled: false,
                   height: 52,
@@ -813,8 +778,8 @@ class _HomePageState extends State<HomePage> {
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            '${s.t('Last backup', 'آخري بيڪ اپ')}: '
-                            '${s.lastBackup == null ? s.t('never', 'ڪڏهن به نه') : fmtDate(s.lastBackup)}',
+                            '${s.t('Last backup', 'آخري بيڪ اپ', 'آخری بیک اپ')}: '
+                            '${s.lastBackup == null ? s.t('never', 'ڪڏهن به نه', 'ابھی تک نہیں') : fmtDate(s.lastBackup)}',
                             style: const TextStyle(
                               color: darkBrown,
                               fontSize: 12,
@@ -826,41 +791,27 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                 ),
-
                 const PopupMenuDivider(),
-
                 PopupMenuItem<String>(
                   value: 'voice_help',
                   child: _modernMenuItem(
                     icon: Icons.record_voice_over_rounded,
-                    title: s.t(
-                      'Voice commands',
-                      'آواز جا حڪم',
-                    ),
+                    title: s.t('Voice commands', 'آواز جا حڪم', 'آواز کے احکامات'),
                   ),
                 ),
-
                 PopupMenuItem<String>(
                   value: 'voice_lang',
                   child: _modernMenuItem(
                     icon: Icons.language_rounded,
-                    title: s.t(
-                      'Voice language',
-                      'آواز جي ٻولي',
-                    ),
+                    title: s.t('Voice language', 'آواز جي ٻولي', 'آواز کی زبان'),
                   ),
                 ),
-
                 const PopupMenuDivider(),
-
                 PopupMenuItem<String>(
                   value: 'sign_out',
                   child: _modernMenuItem(
                     icon: Icons.logout_rounded,
-                    title: s.t(
-                      'Sign Out',
-                      'سائن آئوٽ',
-                    ),
+                    title: s.t('Sign Out', 'سائن آئوٽ', 'سائن آؤٹ'),
                   ),
                 ),
               ],
@@ -868,7 +819,6 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
-
       body: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
@@ -881,28 +831,14 @@ class _HomePageState extends State<HomePage> {
                     onChanged: (_) => _load(),
                     cursorColor: mainBrown,
                     decoration: InputDecoration(
-                      labelText: s.t(
-                        'Search customer',
-                        'گراهڪ ڳوليو',
-                      ),
-                      labelStyle: const TextStyle(
-                        color: darkBrown,
-                      ),
-                      prefixIcon: const Icon(
-                        Icons.search,
-                        color: mainBrown,
-                      ),
+                      labelText: s.t('Search customer', 'گراهڪ ڳوليو', 'گاہک تلاش کریں'),
+                      labelStyle: const TextStyle(color: darkBrown),
+                      prefixIcon: const Icon(Icons.search, color: mainBrown),
                       suffixIcon: IconButton(
-                        tooltip: s.t(
-                          'Voice search',
-                          'آواز سان ڳولا',
-                        ),
-                        onPressed: () =>
-                            _listen(commandMode: false),
+                        tooltip: s.t('Voice search', 'آواز سان ڳولا', 'آواز سے تلاش'),
+                        onPressed: () => _listen(commandMode: false),
                         icon: Icon(
-                          _listening
-                              ? Icons.mic
-                              : Icons.mic_none,
+                          _listening ? Icons.mic : Icons.mic_none,
                           color: mainBrown,
                         ),
                       ),
@@ -910,98 +846,61 @@ class _HomePageState extends State<HomePage> {
                       fillColor: Colors.white,
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
-                        borderSide: const BorderSide(
-                          color: mainBrown,
-                          width: 2,
-                        ),
+                        borderSide: const BorderSide(color: mainBrown, width: 2),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
                         borderSide: BorderSide(
-                          color: mainBrown.withValues(
-                            alpha: 0.35,
-                          ),
+                          color: mainBrown.withValues(alpha: 0.35),
                         ),
                       ),
                     ),
                   ),
                 ),
-
                 const SizedBox(width: 6),
-
                 IconButton(
-                  tooltip: s.t(
-                    'Voice command',
-                    'آواز جو حڪم',
-                  ),
-                  onPressed: () =>
-                      _listen(commandMode: true),
+                  tooltip: s.t('Voice command', 'آواز جو حڪم', 'آواز کا حکم'),
+                  onPressed: () => _listen(commandMode: true),
                   style: IconButton.styleFrom(
                     backgroundColor: mainBrown,
                     foregroundColor: Colors.white,
                   ),
-                  icon: const Icon(
-                    Icons.record_voice_over,
-                  ),
+                  icon: const Icon(Icons.record_voice_over),
                 ),
               ],
             ),
-
             if (_listening)
               Card(
                 color: softBrown,
                 elevation: 1,
                 child: ListTile(
-                  leading: const Icon(
-                    Icons.mic,
-                    color: darkBrown,
-                  ),
+                  leading: const Icon(Icons.mic, color: darkBrown),
                   title: Text(
                     _heard.isEmpty
-                        ? s.t(
-                            'Listening… speak now',
-                            'ٻڌي رهيو آهيان… ڳالهايو',
-                          )
+                        ? s.t('Listening… speak now', 'ٻڌي رهيو آهيان… ڳالهايو', 'سن رہا ہوں… بولیں')
                         : _heard,
-                    style: const TextStyle(
-                      color: darkBrown,
-                    ),
+                    style: const TextStyle(color: darkBrown),
                   ),
                   trailing: TextButton(
-                    style: TextButton.styleFrom(
-                      foregroundColor: mainBrown,
-                    ),
+                    style: TextButton.styleFrom(foregroundColor: mainBrown),
                     onPressed: _voice.stop,
-                    child: Text(
-                      s.t(
-                        'Done',
-                        'ٿي ويو',
-                      ),
-                    ),
+                    child: Text(s.t('Done', 'ٿي ويو', 'ہو گیا')),
                   ),
                 ),
               ),
-
-            if (_list.isNotEmpty &&
-                _search.text.isEmpty &&
-                s.backupOverdue)
+            if (_list.isNotEmpty && _search.text.isEmpty && s.backupOverdue)
               Card(
                 color: softBrown,
                 elevation: 1,
                 child: ListTile(
-                  leading: const Icon(
-                    Icons.backup,
-                    color: darkBrown,
-                  ),
+                  leading: const Icon(Icons.backup, color: darkBrown),
                   title: Text(
                     s.lastBackup == null
-                        ? s.t(
-                            'No backup yet',
-                            'اڃا بيڪ اپ ناهي',
-                          )
+                        ? s.t('No backup yet', 'اڃا بيڪ اپ ناهي', 'ابھی بیک اپ نہیں ہے')
                         : s.t(
                             'Last backup is over a week old',
                             'آخري بيڪ اپ هڪ هفتي کان پراڻو آهي',
+                            'آخری بیک اپ کو ایک ہفتے سے زیادہ ہو گیا ہے',
                           ),
                     style: const TextStyle(
                       color: darkBrown,
@@ -1009,55 +908,34 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                   trailing: TextButton(
-                    style: TextButton.styleFrom(
-                      foregroundColor: mainBrown,
-                    ),
+                    style: TextButton.styleFrom(foregroundColor: mainBrown),
                     onPressed: _backup,
-                    child: Text(
-                      s.t(
-                        'Backup now',
-                        'هاڻي بيڪ اپ ڪريو',
-                      ),
-                    ),
+                    child: Text(s.t('Backup now', 'هاڻي بيڪ اپ ڪريو', 'ابھی بیک اپ کریں')),
                   ),
                 ),
               ),
-
             const SizedBox(height: 10),
-
-            Expanded(
-              child: _buildList(s),
-            ),
+            Expanded(child: _buildList(s)),
           ],
         ),
       ),
-
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: mainBrown,
         foregroundColor: Colors.white,
         elevation: 4,
         onPressed: () => _editCustomer(),
-        icon: const Icon(
-          Icons.person_add,
-        ),
-        label: Text(
-          s.t(
-            'Customer',
-            'گراهڪ',
-          ),
-        ),
+        icon: const Icon(Icons.person_add),
+        label: Text(s.t('Customer', 'گراهڪ', 'گاہک')),
       ),
     );
   }
 
-  // ------------------------------------------------------------ customer list
+  // Customer list
 
   Widget _buildList(AppSettings s) {
     if (_loading) {
       return const Center(
-        child: CircularProgressIndicator(
-          color: mainBrown,
-        ),
+        child: CircularProgressIndicator(color: mainBrown),
       );
     }
 
@@ -1068,23 +946,17 @@ class _HomePageState extends State<HomePage> {
               ? s.t(
                   'No customers yet. Tap "Customer" to add one.',
                   'اڃا ڪو گراهڪ ناهي. گراهڪ شامل ڪرڻ لاءِ "گراهڪ" دٻايو.',
+                  'ابھی کوئی گاہک نہیں۔ شامل کرنے کے لیے "گاہک" دبائیں۔',
                 )
-              : s.t(
-                  'No customer found',
-                  'گراهڪ نه مليو',
-                ),
+              : s.t('No customer found', 'گراهڪ نه مليو', 'کوئی گاہک نہیں ملا'),
           textAlign: TextAlign.center,
-          style: const TextStyle(
-            color: darkBrown,
-          ),
+          style: const TextStyle(color: darkBrown),
         ),
       );
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.only(
-        bottom: 88,
-      ),
+      padding: const EdgeInsets.only(bottom: 88),
       itemCount: _list.length,
       itemBuilder: (_, i) {
         final item = _list[i];
@@ -1098,44 +970,28 @@ class _HomePageState extends State<HomePage> {
 
         if (item.remaining > 0.005) {
           parts.add(
-            '${s.t('Remaining', 'باقي')}: '
-            '${fmtMoney(item.remaining)}',
+            '${s.t('Remaining', 'باقي', 'باقی')}: ${fmtMoney(item.remaining)}',
           );
         }
 
         return Card(
           color: Colors.white,
           elevation: 2,
-          margin: const EdgeInsets.symmetric(
-            vertical: 5,
-          ),
+          margin: const EdgeInsets.symmetric(vertical: 5),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
-            side: BorderSide(
-              color: mainBrown.withValues(
-                alpha: 0.15,
-              ),
-            ),
+            side: BorderSide(color: mainBrown.withValues(alpha: 0.15)),
           ),
           child: ListTile(
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 4,
-            ),
-
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             leading: CircleAvatar(
               backgroundColor: mainBrown,
               foregroundColor: Colors.white,
               child: Text(
-                c.name.isEmpty
-                    ? '?'
-                    : c.name.characters.first,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                ),
+                c.name.isEmpty ? '?' : c.name.characters.first,
+                style: const TextStyle(fontWeight: FontWeight.bold),
               ),
             ),
-
             title: Text(
               c.name,
               style: const TextStyle(
@@ -1143,63 +999,41 @@ class _HomePageState extends State<HomePage> {
                 fontWeight: FontWeight.w600,
               ),
             ),
-
             subtitle: parts.isEmpty
                 ? null
                 : Text(
                     parts.join('  •  '),
-                    style: const TextStyle(
-                      color: Color(0xFF795548),
-                    ),
+                    style: const TextStyle(color: Color(0xFF795548)),
                   ),
-
             onTap: () => _openOrders(c),
-
             trailing: PopupMenuButton<String>(
-              tooltip: s.t(
-                'Customer options',
-                'گراهڪ جا آپشن',
-              ),
-
+              tooltip: s.t('Customer options', 'گراهڪ جا آپشن', 'گاہک کے اختیارات'),
               offset: const Offset(-8, 8),
-
               elevation: 8,
-
               color: lightBrown,
-
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(18),
               ),
-
               icon: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   color: softBrown,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(
-                  Icons.more_vert_rounded,
-                  color: mainBrown,
-                  size: 24,
-                ),
+                child: const Icon(Icons.more_vert_rounded, color: mainBrown, size: 24),
               ),
-
               onSelected: (v) {
                 switch (v) {
                   case 'measure':
                     _openMeasurements(c);
-
                   case 'orders':
                     _openOrders(c);
-
                   case 'edit':
                     _editCustomer(c);
-
                   case 'delete':
                     _deleteCustomer(c);
                 }
               },
-
               itemBuilder: (_) => [
                 PopupMenuItem<String>(
                   enabled: false,
@@ -1212,15 +1046,9 @@ class _HomePageState extends State<HomePage> {
                           color: mainBrown,
                           borderRadius: BorderRadius.circular(11),
                         ),
-                        child: const Icon(
-                          Icons.person_rounded,
-                          color: Colors.white,
-                          size: 22,
-                        ),
+                        child: const Icon(Icons.person_rounded, color: Colors.white, size: 22),
                       ),
-
                       const SizedBox(width: 10),
-
                       Expanded(
                         child: Text(
                           c.name,
@@ -1236,50 +1064,33 @@ class _HomePageState extends State<HomePage> {
                     ],
                   ),
                 ),
-
                 const PopupMenuDivider(),
-
                 PopupMenuItem<String>(
                   value: 'measure',
                   child: _customerMenuItem(
                     icon: Icons.straighten_rounded,
-                    title: s.t(
-                      'Measurements',
-                      'ماپ',
-                    ),
+                    title: s.t('Measurements', 'ماپ', 'پیمائشیں'),
                   ),
                 ),
-
                 PopupMenuItem<String>(
                   value: 'orders',
                   child: _customerMenuItem(
                     icon: Icons.receipt_long_rounded,
-                    title: s.t(
-                      'Orders',
-                      'آرڊر',
-                    ),
+                    title: s.t('Orders', 'آرڊر', 'آرڈرز'),
                   ),
                 ),
-
                 PopupMenuItem<String>(
                   value: 'edit',
                   child: _customerMenuItem(
                     icon: Icons.edit_rounded,
-                    title: s.t(
-                      'Edit',
-                      'تبديل ڪريو',
-                    ),
+                    title: s.t('Edit', 'تبديل ڪريو', 'ترمیم کریں'),
                   ),
                 ),
-
                 PopupMenuItem<String>(
                   value: 'delete',
                   child: _customerMenuItem(
                     icon: Icons.delete_outline_rounded,
-                    title: s.t(
-                      'Delete',
-                      'ڊيليٽ',
-                    ),
+                    title: s.t('Delete', 'ڊيليٽ', 'حذف کریں'),
                     delete: true,
                   ),
                 ),
@@ -1291,10 +1102,6 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // ---------------------------------------------------------
-  // Customer menu item design
-  // ---------------------------------------------------------
-
   Widget _customerMenuItem({
     required IconData icon,
     required String title,
@@ -1305,29 +1112,21 @@ class _HomePageState extends State<HomePage> {
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: delete
-                ? const Color(0xFFF2D6D2)
-                : softBrown,
+            color: delete ? const Color(0xFFF2D6D2) : softBrown,
             borderRadius: BorderRadius.circular(10),
           ),
           child: Icon(
             icon,
-            color: delete
-                ? const Color(0xFFB3261E)
-                : mainBrown,
+            color: delete ? const Color(0xFFB3261E) : mainBrown,
             size: 21,
           ),
         ),
-
         const SizedBox(width: 12),
-
         Expanded(
           child: Text(
             title,
             style: TextStyle(
-              color: delete
-                  ? const Color(0xFFB3261E)
-                  : darkBrown,
+              color: delete ? const Color(0xFFB3261E) : darkBrown,
               fontSize: 15,
               fontWeight: FontWeight.w600,
             ),
@@ -1338,36 +1137,28 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
-// ================================================================= customer input
+// Customer input
 
 class _CustomerInput {
   final String name;
   final String phone;
   final String address;
 
-  const _CustomerInput(
-    this.name,
-    this.phone,
-    this.address,
-  );
+  const _CustomerInput(this.name, this.phone, this.address);
 }
 
-// ================================================================= customer dialog
+// Customer dialog
 
 class _CustomerDialog extends StatefulWidget {
   final Customer? existing;
 
-  const _CustomerDialog({
-    this.existing,
-  });
+  const _CustomerDialog({this.existing});
 
   @override
-  State<_CustomerDialog> createState() =>
-      _CustomerDialogState();
+  State<_CustomerDialog> createState() => _CustomerDialogState();
 }
 
-class _CustomerDialogState
-    extends State<_CustomerDialog> {
+class _CustomerDialogState extends State<_CustomerDialog> {
   final _formKey = GlobalKey<FormState>();
 
   late final TextEditingController _name;
@@ -1375,24 +1166,15 @@ class _CustomerDialogState
   late final TextEditingController _address;
 
   static const Color mainBrown = Color(0xFF6B4F3A);
-
   static const Color darkBrown = Color(0xFF4E342E);
 
   @override
   void initState() {
     super.initState();
 
-    _name = TextEditingController(
-      text: widget.existing?.name ?? '',
-    );
-
-    _phone = TextEditingController(
-      text: widget.existing?.phone ?? '',
-    );
-
-    _address = TextEditingController(
-      text: widget.existing?.address ?? '',
-    );
+    _name = TextEditingController(text: widget.existing?.name ?? '');
+    _phone = TextEditingController(text: widget.existing?.phone ?? '');
+    _address = TextEditingController(text: widget.existing?.address ?? '');
   }
 
   @override
@@ -1410,20 +1192,13 @@ class _CustomerDialogState
     return AlertDialog(
       title: Text(
         widget.existing == null
-            ? s.t(
-                'New Customer',
-                'نئون گراهڪ',
-              )
-            : s.t(
-                'Edit Customer',
-                'گراهڪ تبديل ڪريو',
-              ),
+            ? s.t('New Customer', 'نئون گراهڪ', 'نیا گاہک')
+            : s.t('Edit Customer', 'گراهڪ تبديل ڪريو', 'گاہک میں ترمیم کریں'),
         style: const TextStyle(
           color: darkBrown,
           fontWeight: FontWeight.bold,
         ),
       ),
-
       content: SingleChildScrollView(
         child: Form(
           key: _formKey,
@@ -1433,75 +1208,39 @@ class _CustomerDialogState
               TextFormField(
                 controller: _name,
                 autofocus: true,
-                textCapitalization:
-                    TextCapitalization.words,
+                textCapitalization: TextCapitalization.words,
                 cursorColor: mainBrown,
                 decoration: InputDecoration(
-                  labelText: s.t(
-                    'Name',
-                    'نالو',
-                  ),
-                  labelStyle: const TextStyle(
-                    color: darkBrown,
-                  ),
-                  focusedBorder:
-                      const UnderlineInputBorder(
-                    borderSide: BorderSide(
-                      color: mainBrown,
-                      width: 2,
-                    ),
+                  labelText: s.t('Name', 'نالو', 'نام'),
+                  labelStyle: const TextStyle(color: darkBrown),
+                  focusedBorder: const UnderlineInputBorder(
+                    borderSide: BorderSide(color: mainBrown, width: 2),
                   ),
                 ),
-                validator: (v) =>
-                    (v == null ||
-                            v.trim().isEmpty)
-                        ? s.t(
-                            'Name is required',
-                            'نالو ضروري آهي',
-                          )
-                        : null,
+                validator: (v) => (v == null || v.trim().isEmpty)
+                    ? s.t('Name is required', 'نالو ضروري آهي', 'نام ضروری ہے')
+                    : null,
               ),
-
               TextFormField(
                 controller: _phone,
-                keyboardType:
-                    TextInputType.phone,
+                keyboardType: TextInputType.phone,
                 cursorColor: mainBrown,
                 decoration: InputDecoration(
-                  labelText: s.t(
-                    'Phone',
-                    'فون',
-                  ),
-                  labelStyle: const TextStyle(
-                    color: darkBrown,
-                  ),
-                  focusedBorder:
-                      const UnderlineInputBorder(
-                    borderSide: BorderSide(
-                      color: mainBrown,
-                      width: 2,
-                    ),
+                  labelText: s.t('Phone', 'فون', 'فون'),
+                  labelStyle: const TextStyle(color: darkBrown),
+                  focusedBorder: const UnderlineInputBorder(
+                    borderSide: BorderSide(color: mainBrown, width: 2),
                   ),
                 ),
               ),
-
               TextFormField(
                 controller: _address,
                 cursorColor: mainBrown,
                 decoration: InputDecoration(
-                  labelText: s.t(
-                    'Address',
-                    'پتو',
-                  ),
-                  labelStyle: const TextStyle(
-                    color: darkBrown,
-                  ),
-                  focusedBorder:
-                      const UnderlineInputBorder(
-                    borderSide: BorderSide(
-                      color: mainBrown,
-                      width: 2,
-                    ),
+                  labelText: s.t('Address', 'پتو', 'پتہ'),
+                  labelStyle: const TextStyle(color: darkBrown),
+                  focusedBorder: const UnderlineInputBorder(
+                    borderSide: BorderSide(color: mainBrown, width: 2),
                   ),
                 ),
               ),
@@ -1509,30 +1248,19 @@ class _CustomerDialogState
           ),
         ),
       ),
-
       actions: [
         TextButton(
-          style: TextButton.styleFrom(
-            foregroundColor: mainBrown,
-          ),
-          onPressed: () =>
-              Navigator.pop(context),
-          child: Text(
-            s.t(
-              'Cancel',
-              'منسوخ',
-            ),
-          ),
+          style: TextButton.styleFrom(foregroundColor: mainBrown),
+          onPressed: () => Navigator.pop(context),
+          child: Text(s.t('Cancel', 'منسوخ', 'منسوخ کریں')),
         ),
-
         FilledButton(
           style: FilledButton.styleFrom(
             backgroundColor: mainBrown,
             foregroundColor: Colors.white,
           ),
           onPressed: () {
-            if (_formKey.currentState!
-                .validate()) {
+            if (_formKey.currentState!.validate()) {
               Navigator.pop(
                 context,
                 _CustomerInput(
@@ -1543,12 +1271,7 @@ class _CustomerDialogState
               );
             }
           },
-          child: Text(
-            s.t(
-              'Save',
-              'محفوظ ڪريو',
-            ),
-          ),
+          child: Text(s.t('Save', 'محفوظ ڪريو', 'محفوظ کریں')),
         ),
       ],
     );
