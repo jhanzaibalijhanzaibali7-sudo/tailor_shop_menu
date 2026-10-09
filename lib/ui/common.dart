@@ -13,7 +13,7 @@ final DateFormat _isoDate = DateFormat('yyyy-MM-dd', 'en');
 /// 1500 -> "1,500", 1500.5 -> "1,500.5"
 String fmtMoney(num v) => _moneyFormat.format(v);
 
-/// Date shown to the user (digits stay Latin in Sindhi mode).
+/// Date shown to the user; digits stay Latin in every language.
 String fmtDate(DateTime? d) => d == null ? '' : _shownDate.format(d);
 
 /// Date as stored in the database.
@@ -22,8 +22,11 @@ String isoDate(DateTime d) => _isoDate.format(d);
 void showSnack(BuildContext context, String message) {
   final messenger = ScaffoldMessenger.maybeOf(context);
   if (messenger == null) return;
+
   messenger.hideCurrentSnackBar();
-  messenger.showSnackBar(SnackBar(content: Text(message)));
+  messenger.showSnackBar(
+    SnackBar(content: Text(message)),
+  );
 }
 
 Future<bool> confirmDialog(
@@ -34,6 +37,7 @@ Future<bool> confirmDialog(
   bool destructive = false,
 }) async {
   final s = AppScope.of(context);
+
   final result = await showDialog<bool>(
     context: context,
     builder: (ctx) => AlertDialog(
@@ -42,7 +46,9 @@ Future<bool> confirmDialog(
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(ctx, false),
-          child: Text(s.t('Cancel', 'منسوخ')),
+          child: Text(
+            s.t('Cancel', 'منسوخ', 'منسوخ کریں'),
+          ),
         ),
         FilledButton(
           style: destructive
@@ -52,11 +58,14 @@ Future<bool> confirmDialog(
                 )
               : null,
           onPressed: () => Navigator.pop(ctx, true),
-          child: Text(confirmLabel ?? s.t('Yes', 'ها')),
+          child: Text(
+            confirmLabel ?? s.t('Yes', 'ها', 'ہاں'),
+          ),
         ),
       ],
     ),
   );
+
   return result ?? false;
 }
 
@@ -65,7 +74,11 @@ class StoredPhoto extends StatefulWidget {
   final String stored;
   final double height;
 
-  const StoredPhoto({super.key, required this.stored, this.height = 160});
+  const StoredPhoto({
+    super.key,
+    required this.stored,
+    this.height = 160,
+  });
 
   @override
   State<StoredPhoto> createState() => _StoredPhotoState();
@@ -83,6 +96,7 @@ class _StoredPhotoState extends State<StoredPhoto> {
   @override
   void didUpdateWidget(covariant StoredPhoto oldWidget) {
     super.didUpdateWidget(oldWidget);
+
     if (oldWidget.stored != widget.stored) {
       _file = PhotoStore.resolve(widget.stored);
     }
@@ -91,16 +105,21 @@ class _StoredPhotoState extends State<StoredPhoto> {
   @override
   Widget build(BuildContext context) {
     final s = AppScope.of(context);
+
     return FutureBuilder<File?>(
       future: _file,
       builder: (context, snap) {
         if (snap.connectionState != ConnectionState.done) {
           return SizedBox(
             height: widget.height,
-            child: const Center(child: CircularProgressIndicator()),
+            child: const Center(
+              child: CircularProgressIndicator(),
+            ),
           );
         }
+
         final file = snap.data;
+
         if (file == null) {
           return SizedBox(
             height: widget.height,
@@ -109,16 +128,25 @@ class _StoredPhotoState extends State<StoredPhoto> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const Icon(Icons.broken_image_outlined),
-                  Text(s.t('Photo not found', 'تصوير نه ملي')),
+                  Text(
+                    s.t(
+                      'Photo not found',
+                      'تصوير نه ملي',
+                      'تصویر نہیں ملی',
+                    ),
+                  ),
                 ],
               ),
             ),
           );
         }
+
         return GestureDetector(
           onTap: () => Navigator.push(
             context,
-            MaterialPageRoute<void>(builder: (_) => PhotoViewerPage(file: file)),
+            MaterialPageRoute<void>(
+              builder: (_) => PhotoViewerPage(file: file),
+            ),
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(8),
@@ -130,7 +158,9 @@ class _StoredPhotoState extends State<StoredPhoto> {
               cacheWidth: 900,
               errorBuilder: (_, __, ___) => SizedBox(
                 height: widget.height,
-                child: const Center(child: Icon(Icons.broken_image_outlined)),
+                child: const Center(
+                  child: Icon(Icons.broken_image_outlined),
+                ),
               ),
             ),
           ),
@@ -142,7 +172,11 @@ class _StoredPhotoState extends State<StoredPhoto> {
 
 class PhotoViewerPage extends StatelessWidget {
   final File file;
-  const PhotoViewerPage({super.key, required this.file});
+
+  const PhotoViewerPage({
+    super.key,
+    required this.file,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -155,7 +189,10 @@ class PhotoViewerPage extends StatelessWidget {
       body: Center(
         child: InteractiveViewer(
           maxScale: 6,
-          child: Image.file(file, fit: BoxFit.contain),
+          child: Image.file(
+            file,
+            fit: BoxFit.contain,
+          ),
         ),
       ),
     );
