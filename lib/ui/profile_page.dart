@@ -1,3 +1,4 @@
+
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -5,6 +6,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../app.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -23,40 +26,41 @@ class _ProfilePageState extends State<ProfilePage> {
   late TextEditingController _phoneController;
 
   String? _profileImagePath;
-
   bool _saving = false;
   bool _loading = true;
   bool _editingInformation = false;
 
+  String _t(String en, String sd, [String? ur]) {
+    return AppScope.of(context).t(en, sd, ur);
+  }
+
   @override
   void initState() {
     super.initState();
-
     _nameController = TextEditingController();
     _shopController = TextEditingController();
     _phoneController = TextEditingController();
-
     _loadProfile();
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _shopController.dispose();
+    _phoneController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadProfile() async {
     final user = _auth.currentUser;
 
     if (user == null) {
-      if (mounted) {
-        setState(() {
-          _loading = false;
-        });
-      }
+      if (mounted) setState(() => _loading = false);
       return;
     }
 
     try {
-      final doc = await _firestore
-          .collection('users')
-          .doc(user.uid)
-          .get();
-
+      final doc = await _firestore.collection('users').doc(user.uid).get();
       final prefs = await SharedPreferences.getInstance();
 
       if (!mounted) return;
@@ -64,62 +68,51 @@ class _ProfilePageState extends State<ProfilePage> {
       setState(() {
         _nameController.text =
             doc.data()?['fullName']?.toString() ??
-                user.displayName ??
-                '';
-
+            user.displayName ??
+            '';
         _shopController.text =
             doc.data()?['shopName']?.toString() ?? '';
-
         _phoneController.text =
             doc.data()?['phone']?.toString() ?? '';
-
-        _profileImagePath =
-            prefs.getString('profile_image_path');
-
+        _profileImagePath = prefs.getString('profile_image_path');
         _loading = false;
       });
-    } catch (e) {
+    } catch (_) {
       if (!mounted) return;
-
-      setState(() {
-        _loading = false;
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Could not load profile: $e',
-          ),
-        ),
-      );
+      setState(() => _loading = false);
+      _showMessage(_t(
+        'Could not load profile. Please try again.',
+        'پروفائل لوڊ نه ٿي سگهيو. ٻيهر ڪوشش ڪريو.',
+        'پروفائل لوڈ نہیں ہو سکی۔ دوبارہ کوشش کریں۔',
+      ));
     }
   }
 
   Future<void> _pickProfileImage() async {
-    final XFile? image = await _imagePicker.pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 80,
-    );
+    try {
+      final XFile? image = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 80,
+      );
 
-    if (image == null) return;
+      if (image == null) return;
 
-    final prefs = await SharedPreferences.getInstance();
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('profile_image_path', image.path);
 
-    await prefs.setString(
-      'profile_image_path',
-      image.path,
-    );
-
-    if (!mounted) return;
-
-    setState(() {
-      _profileImagePath = image.path;
-    });
+      if (!mounted) return;
+      setState(() => _profileImagePath = image.path);
+    } catch (_) {
+      _showMessage(_t(
+        'Could not select photo. Please try again.',
+        'تصوير چونڊي نه سگهجي. ٻيهر ڪوشش ڪريو.',
+        'تصویر منتخب نہیں ہو سکی۔ دوبارہ کوشش کریں۔',
+      ));
+    }
   }
 
   Future<void> _saveProfile() async {
     final user = _auth.currentUser;
-
     if (user == null) return;
 
     final name = _nameController.text.trim();
@@ -127,27 +120,20 @@ class _ProfilePageState extends State<ProfilePage> {
     final phone = _phoneController.text.trim();
 
     if (name.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Please enter your full name',
-          ),
-        ),
-      );
+      _showMessage(_t(
+        'Please enter your full name.',
+        'مهرباني ڪري پنهنجو پورو نالو لکو.',
+        'براہ کرم اپنا پورا نام درج کریں۔',
+      ));
       return;
     }
 
-    setState(() {
-      _saving = true;
-    });
+    setState(() => _saving = true);
 
     try {
       await user.updateDisplayName(name);
 
-      await _firestore
-          .collection('users')
-          .doc(user.uid)
-          .set(
+      await _firestore.collection('users').doc(user.uid).set(
         {
           'fullName': name,
           'email': user.email ?? '',
@@ -168,313 +154,255 @@ class _ProfilePageState extends State<ProfilePage> {
         _editingInformation = false;
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Profile saved successfully',
-          ),
-        ),
-      );
-    } catch (e) {
+      _showMessage(_t(
+        'Profile saved successfully.',
+        'پروفائل ڪاميابي سان محفوظ ٿي وئي.',
+        'پروفائل کامیابی سے محفوظ ہو گئی۔',
+      ));
+    } catch (_) {
       if (!mounted) return;
-
-      setState(() {
-        _saving = false;
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Could not save profile: $e',
-          ),
-        ),
-      );
+      setState(() => _saving = false);
+      _showMessage(_t(
+        'Could not save profile. Please try again.',
+        'پروفائل محفوظ نه ٿي. ٻيهر ڪوشش ڪريو.',
+        'پروفائل محفوظ نہیں ہو سکی۔ دوبارہ کوشش کریں۔',
+      ));
     }
   }
 
   Future<void> _showChangePasswordDialog() async {
-    final currentPasswordController =
-        TextEditingController();
-    final newPasswordController =
-        TextEditingController();
-    final confirmPasswordController =
-        TextEditingController();
+    final currentController = TextEditingController();
+    final newController = TextEditingController();
+    final confirmController = TextEditingController();
 
     bool obscureCurrent = true;
     bool obscureNew = true;
     bool obscureConfirm = true;
-    bool changingPassword = false;
+    bool changing = false;
 
-    await showDialog(
-      context: context,
-      barrierDismissible: !changingPassword,
-      builder: (dialogContext) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            Future<void> changePassword() async {
-              final user = _auth.currentUser;
+    try {
+      await showDialog(
+        context: context,
+        builder: (dialogContext) {
+          return StatefulBuilder(
+            builder: (context, setDialogState) {
+              Future<void> changePassword() async {
+                final user = _auth.currentUser;
+                if (user == null) return;
 
-              if (user == null) return;
+                final current = currentController.text.trim();
+                final newPassword = newController.text.trim();
+                final confirm = confirmController.text.trim();
 
-              final currentPassword =
-                  currentPasswordController.text.trim();
-              final newPassword =
-                  newPasswordController.text.trim();
-              final confirmPassword =
-                  confirmPasswordController.text.trim();
+                if (current.isEmpty ||
+                    newPassword.isEmpty ||
+                    confirm.isEmpty) {
+                  _showMessage(_t(
+                    'Please fill all password fields.',
+                    'پاسورڊ جا سڀ خانا ڀريو.',
+                    'براہ کرم پاس ورڈ کے تمام خانے پُر کریں۔',
+                  ));
+                  return;
+                }
 
-              if (currentPassword.isEmpty ||
-                  newPassword.isEmpty ||
-                  confirmPassword.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                      'Please fill all password fields',
-                    ),
-                  ),
-                );
-                return;
-              }
+                if (newPassword.length < 6) {
+                  _showMessage(_t(
+                    'New password must be at least 6 characters.',
+                    'نئون پاسورڊ گهٽ ۾ گهٽ 6 اکرن جو هجي.',
+                    'نیا پاس ورڈ کم از کم 6 حروف کا ہونا چاہیے۔',
+                  ));
+                  return;
+                }
 
-              if (newPassword.length < 6) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                      'New password must be at least 6 characters',
-                    ),
-                  ),
-                );
-                return;
-              }
+                if (newPassword != confirm) {
+                  _showMessage(_t(
+                    'New passwords do not match.',
+                    'نوان پاسورڊ هڪجهڙا ناهن.',
+                    'نئے پاس ورڈ ایک جیسے نہیں ہیں۔',
+                  ));
+                  return;
+                }
 
-              if (newPassword != confirmPassword) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                      'New passwords do not match',
-                    ),
-                  ),
-                );
-                return;
-              }
+                setDialogState(() => changing = true);
 
-              setDialogState(() {
-                changingPassword = true;
-              });
+                try {
+                  final email = user.email;
+                  if (email == null || email.isEmpty) {
+                    throw FirebaseAuthException(code: 'no-email');
+                  }
 
-              try {
-                final email = user.email;
-
-                if (email == null || email.isEmpty) {
-                  throw FirebaseAuthException(
-                    code: 'no-email',
-                    message:
-                        'No email is associated with this account.',
+                  final credential = EmailAuthProvider.credential(
+                    email: email,
+                    password: current,
                   );
+
+                  await user.reauthenticateWithCredential(credential);
+                  await user.updatePassword(newPassword);
+
+                  if (!mounted) return;
+                  Navigator.of(dialogContext).pop();
+
+                  _showMessage(_t(
+                    'Password changed successfully.',
+                    'پاسورڊ ڪاميابي سان تبديل ٿيو.',
+                    'پاس ورڈ کامیابی سے تبدیل ہو گیا۔',
+                  ));
+                } on FirebaseAuthException catch (e) {
+                  setDialogState(() => changing = false);
+
+                  String message;
+                  if (e.code == 'wrong-password' ||
+                      e.code == 'invalid-credential') {
+                    message = _t(
+                      'Current password is incorrect.',
+                      'موجوده پاسورڊ غلط آهي.',
+                      'موجودہ پاس ورڈ غلط ہے۔',
+                    );
+                  } else if (e.code == 'weak-password') {
+                    message = _t(
+                      'New password is too weak.',
+                      'نئون پاسورڊ ڪمزور آهي.',
+                      'نیا پاس ورڈ کمزور ہے۔',
+                    );
+                  } else if (e.code == 'requires-recent-login') {
+                    message = _t(
+                      'Please sign in again and try changing the password.',
+                      'ٻيهر لاگ ان ڪري پاسورڊ تبديل ڪريو.',
+                      'دوبارہ لاگ اِن کریں اور پاس ورڈ تبدیل کریں۔',
+                    );
+                  } else {
+                    message = _t(
+                      'Could not change password. Please try again.',
+                      'پاسورڊ تبديل نه ٿي سگهيو. ٻيهر ڪوشش ڪريو.',
+                      'پاس ورڈ تبدیل نہیں ہو سکا۔ دوبارہ کوشش کریں۔',
+                    );
+                  }
+
+                  _showMessage(message);
+                } catch (_) {
+                  setDialogState(() => changing = false);
+                  _showMessage(_t(
+                    'Could not change password. Please try again.',
+                    'پاسورڊ تبديل نه ٿي سگهيو. ٻيهر ڪوشش ڪريو.',
+                    'پاس ورڈ تبدیل نہیں ہو سکا۔ دوبارہ کوشش کریں۔',
+                  ));
                 }
+              }
 
-                final credential =
-                    EmailAuthProvider.credential(
-                  email: email,
-                  password: currentPassword,
-                );
-
-                await user.reauthenticateWithCredential(
-                  credential,
-                );
-
-                await user.updatePassword(newPassword);
-
-                if (!mounted) return;
-
-                Navigator.of(dialogContext).pop();
-
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                      'Password changed successfully',
-                    ),
-                  ),
-                );
-              } on FirebaseAuthException catch (e) {
-                setDialogState(() {
-                  changingPassword = false;
-                });
-
-                String message =
-                    'Could not change password';
-
-                if (e.code == 'wrong-password' ||
-                    e.code == 'invalid-credential') {
-                  message =
-                      'Current password is incorrect';
-                } else if (e.code == 'weak-password') {
-                  message =
-                      'New password is too weak';
-                } else if (e.code == 'requires-recent-login') {
-                  message =
-                      'Please sign in again and try changing the password';
-                } else if (e.message != null &&
-                    e.message!.isNotEmpty) {
-                  message = e.message!;
-                }
-
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(message),
-                  ),
-                );
-              } catch (e) {
-                setDialogState(() {
-                  changingPassword = false;
-                });
-
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      'Could not change password: $e',
+              Widget passwordField({
+                required TextEditingController controller,
+                required String label,
+                required bool obscure,
+                required VoidCallback toggle,
+              }) {
+                return TextField(
+                  controller: controller,
+                  obscureText: obscure,
+                  enabled: !changing,
+                  decoration: InputDecoration(
+                    labelText: label,
+                    prefixIcon: const Icon(Icons.lock_outline),
+                    suffixIcon: IconButton(
+                      onPressed: changing ? null : toggle,
+                      icon: Icon(
+                        obscure ? Icons.visibility : Icons.visibility_off,
+                      ),
                     ),
                   ),
                 );
               }
-            }
 
-            return AlertDialog(
-              title: const Text(
-                'Change Password',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
+              return AlertDialog(
+                title: Text(
+                  _t('Change Password', 'پاسورڊ تبديل ڪريو', 'پاس ورڈ تبدیل کریں'),
+                  style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
-              ),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller:
-                          currentPasswordController,
-                      obscureText: obscureCurrent,
-                      enabled: !changingPassword,
-                      decoration: InputDecoration(
-                        labelText: 'Current Password',
-                        prefixIcon:
-                            const Icon(Icons.lock_outline),
-                        suffixIcon: IconButton(
-                          onPressed: changingPassword
-                              ? null
-                              : () {
-                                  setDialogState(() {
-                                    obscureCurrent =
-                                        !obscureCurrent;
-                                  });
-                                },
-                          icon: Icon(
-                            obscureCurrent
-                                ? Icons.visibility
-                                : Icons.visibility_off,
-                          ),
+                content: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      passwordField(
+                        controller: currentController,
+                        label: _t('Current Password', 'موجوده پاسورڊ', 'موجودہ پاس ورڈ'),
+                        obscure: obscureCurrent,
+                        toggle: () => setDialogState(
+                          () => obscureCurrent = !obscureCurrent,
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 15),
-                    TextField(
-                      controller: newPasswordController,
-                      obscureText: obscureNew,
-                      enabled: !changingPassword,
-                      decoration: InputDecoration(
-                        labelText: 'New Password',
-                        prefixIcon:
-                            const Icon(Icons.lock_reset),
-                        suffixIcon: IconButton(
-                          onPressed: changingPassword
-                              ? null
-                              : () {
-                                  setDialogState(() {
-                                    obscureNew =
-                                        !obscureNew;
-                                  });
-                                },
-                          icon: Icon(
-                            obscureNew
-                                ? Icons.visibility
-                                : Icons.visibility_off,
-                          ),
+                      const SizedBox(height: 15),
+                      passwordField(
+                        controller: newController,
+                        label: _t('New Password', 'نئون پاسورڊ', 'نیا پاس ورڈ'),
+                        obscure: obscureNew,
+                        toggle: () => setDialogState(
+                          () => obscureNew = !obscureNew,
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 15),
-                    TextField(
-                      controller:
-                          confirmPasswordController,
-                      obscureText: obscureConfirm,
-                      enabled: !changingPassword,
-                      decoration: InputDecoration(
-                        labelText:
-                            'Confirm New Password',
-                        prefixIcon:
-                            const Icon(Icons.lock_reset),
-                        suffixIcon: IconButton(
-                          onPressed: changingPassword
-                              ? null
-                              : () {
-                                  setDialogState(() {
-                                    obscureConfirm =
-                                        !obscureConfirm;
-                                  });
-                                },
-                          icon: Icon(
-                            obscureConfirm
-                                ? Icons.visibility
-                                : Icons.visibility_off,
-                          ),
+                      const SizedBox(height: 15),
+                      passwordField(
+                        controller: confirmController,
+                        label: _t(
+                          'Confirm New Password',
+                          'نئون پاسورڊ ٻيهر لکو',
+                          'نیا پاس ورڈ دوبارہ درج کریں',
+                        ),
+                        obscure: obscureConfirm,
+                        toggle: () => setDialogState(
+                          () => obscureConfirm = !obscureConfirm,
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: changingPassword
-                      ? null
-                      : () {
-                          Navigator.of(dialogContext).pop();
-                        },
-                  child: const Text('Cancel'),
-                ),
-                ElevatedButton(
-                  onPressed: changingPassword
-                      ? null
-                      : changePassword,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor:
-                        const Color(0xFF6D4228),
-                    foregroundColor: Colors.white,
+                    ],
                   ),
-                  child: changingPassword
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child:
-                              CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : const Text(
-                          'Change Password',
-                        ),
                 ),
-              ],
-            );
-          },
-        );
-      },
-    );
+                actions: [
+                  TextButton(
+                    onPressed: changing
+                        ? null
+                        : () => Navigator.of(dialogContext).pop(),
+                    child: Text(_t('Cancel', 'رد ڪريو', 'منسوخ کریں')),
+                  ),
+                  ElevatedButton(
+                    onPressed: changing ? null : changePassword,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF6D4228),
+                      foregroundColor: Colors.white,
+                    ),
+                    child: changing
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : Text(_t(
+                            'Change Password',
+                            'پاسورڊ تبديل ڪريو',
+                            'پاس ورڈ تبدیل کریں',
+                          )),
+                  ),
+                ],
+              );
+            },
+          );
+        },
+      );
+    } finally {
+      currentController.dispose();
+      newController.dispose();
+      confirmController.dispose();
+    }
+  }
 
-    currentPasswordController.dispose();
-    newPasswordController.dispose();
-    confirmPasswordController.dispose();
+  void _showMessage(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   Widget _editableField({
@@ -490,20 +418,14 @@ class _ProfilePageState extends State<ProfilePage> {
         borderRadius: BorderRadius.circular(18),
       ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 4,
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         child: TextField(
           controller: controller,
           keyboardType: keyboardType,
           enabled: _editingInformation,
           decoration: InputDecoration(
             border: InputBorder.none,
-            icon: Icon(
-              icon,
-              color: const Color(0xFF7A4A2A),
-            ),
+            icon: Icon(icon, color: const Color(0xFF7A4A2A)),
             labelText: label,
             labelStyle: const TextStyle(
               color: Color(0xFF7A4A2A),
@@ -531,10 +453,7 @@ class _ProfilePageState extends State<ProfilePage> {
           horizontal: 16,
           vertical: 4,
         ),
-        leading: Icon(
-          icon,
-          color: const Color(0xFF7A4A2A),
-        ),
+        leading: Icon(icon, color: const Color(0xFF7A4A2A)),
         title: Text(
           label,
           style: const TextStyle(
@@ -555,31 +474,20 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   @override
-  void dispose() {
-    _nameController.dispose();
-    _shopController.dispose();
-    _phoneController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final user = _auth.currentUser;
+    final email = user?.email ?? _t('No email', 'اي ميل ناهي', 'ای میل نہیں');
+    final userId = user?.uid ?? _t('No User ID', 'يوزر آءِ ڊي ناهي', 'یوزر آئی ڈی نہیں');
 
-    final String email =
-        user?.email ?? 'No Gmail';
-
-    final String userId =
-        user?.uid ?? 'No User ID';
+    final hasProfileImage = _profileImagePath != null &&
+        File(_profileImagePath!).existsSync();
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F1E7),
       appBar: AppBar(
-        title: const Text(
-          'Profile',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-          ),
+        title: Text(
+          _t('Profile', 'پروفائل', 'پروفائل'),
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
         backgroundColor: const Color(0xFF6D4228),
@@ -596,8 +504,6 @@ class _ProfilePageState extends State<ProfilePage> {
               child: Column(
                 children: [
                   const SizedBox(height: 10),
-
-                  // Profile Photo
                   GestureDetector(
                     onTap: _pickProfileImage,
                     child: Stack(
@@ -605,23 +511,11 @@ class _ProfilePageState extends State<ProfilePage> {
                       children: [
                         CircleAvatar(
                           radius: 62,
-                          backgroundColor:
-                              const Color(0xFF7A4A2A),
-                          backgroundImage:
-                              _profileImagePath != null &&
-                                      File(
-                                        _profileImagePath!,
-                                      ).existsSync()
-                                  ? FileImage(
-                                      File(
-                                        _profileImagePath!,
-                                      ),
-                                    )
-                                  : null,
-                          child: _profileImagePath == null ||
-                                  !File(
-                                    _profileImagePath!,
-                                  ).existsSync()
+                          backgroundColor: const Color(0xFF7A4A2A),
+                          backgroundImage: hasProfileImage
+                              ? FileImage(File(_profileImagePath!))
+                              : null,
+                          child: !hasProfileImage
                               ? const Icon(
                                   Icons.person,
                                   size: 68,
@@ -634,10 +528,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           decoration: BoxDecoration(
                             color: const Color(0xFF6D4228),
                             shape: BoxShape.circle,
-                            border: Border.all(
-                              color: Colors.white,
-                              width: 2,
-                            ),
+                            border: Border.all(color: Colors.white, width: 2),
                           ),
                           child: const Icon(
                             Icons.camera_alt,
@@ -648,142 +539,106 @@ class _ProfilePageState extends State<ProfilePage> {
                       ],
                     ),
                   ),
-
                   const SizedBox(height: 10),
-
-                  const Text(
-                    'Tap photo to change',
-                    style: TextStyle(
-                      color: Colors.brown,
-                      fontSize: 13,
+                  Text(
+                    _t(
+                      'Tap photo to change',
+                      'تصوير تبديل ڪرڻ لاءِ دٻايو',
+                      'تصویر تبدیل کرنے کے لیے ٹیپ کریں',
                     ),
+                    style: const TextStyle(color: Colors.brown, fontSize: 13),
                   ),
-
                   const SizedBox(height: 25),
 
-                  // User ID
                   _readOnlyField(
                     icon: Icons.badge_outlined,
-                    label: 'User ID',
+                    label: _t('User ID', 'يوزر آءِ ڊي', 'یوزر آئی ڈی'),
                     value: userId,
                   ),
-
-                  // Gmail
                   _readOnlyField(
                     icon: Icons.email_outlined,
-                    label: 'Gmail',
+                    label: _t('Email', 'اي ميل', 'ای میل'),
                     value: email,
                   ),
-
                   const SizedBox(height: 10),
 
-                  // Edit Information
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton.icon(
                       onPressed: () {
                         setState(() {
-                          _editingInformation =
-                              !_editingInformation;
+                          _editingInformation = !_editingInformation;
                         });
                       },
                       icon: Icon(
-                        _editingInformation
-                            ? Icons.close
-                            : Icons.edit_outlined,
+                        _editingInformation ? Icons.close : Icons.edit_outlined,
                       ),
                       label: Text(
                         _editingInformation
-                            ? 'Cancel Edit'
-                            : 'Edit Information',
+                            ? _t('Cancel Edit', 'تبديلي رد ڪريو', 'ترمیم منسوخ کریں')
+                            : _t('Edit Information', 'معلومات تبديل ڪريو', 'معلومات میں ترمیم کریں'),
                       ),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor:
-                            const Color(0xFF6D4228),
-                        side: const BorderSide(
-                          color: Color(0xFF6D4228),
-                        ),
-                        padding:
-                            const EdgeInsets.symmetric(
-                          vertical: 14,
-                        ),
+                        foregroundColor: const Color(0xFF6D4228),
+                        side: const BorderSide(color: Color(0xFF6D4228)),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(16),
                         ),
                       ),
                     ),
                   ),
-
                   const SizedBox(height: 18),
 
-                  // Full Name
                   _editableField(
                     icon: Icons.person_outline,
-                    label: 'Full Name',
+                    label: _t('Full Name', 'پورو نالو', 'پورا نام'),
                     controller: _nameController,
                   ),
-
-                  // Shop Name
                   _editableField(
                     icon: Icons.store_outlined,
-                    label: 'Shop Name',
+                    label: _t('Shop Name', 'دڪان جو نالو', 'دکان کا نام'),
                     controller: _shopController,
                   ),
-
-                  // Phone Number
                   _editableField(
                     icon: Icons.phone_outlined,
-                    label: 'Phone Number',
+                    label: _t('Phone Number', 'فون نمبر', 'فون نمبر'),
                     controller: _phoneController,
-                    keyboardType:
-                        TextInputType.phone,
+                    keyboardType: TextInputType.phone,
                   ),
 
                   if (_editingInformation) ...[
                     const SizedBox(height: 12),
-
                     SizedBox(
                       width: double.infinity,
                       height: 54,
                       child: ElevatedButton.icon(
-                        onPressed:
-                            _saving
-                                ? null
-                                : _saveProfile,
+                        onPressed: _saving ? null : _saveProfile,
                         icon: _saving
                             ? const SizedBox(
                                 width: 20,
                                 height: 20,
-                                child:
-                                    CircularProgressIndicator(
+                                child: CircularProgressIndicator(
                                   strokeWidth: 2,
                                   color: Colors.white,
                                 ),
                               )
-                            : const Icon(
-                                Icons.save_outlined,
-                              ),
+                            : const Icon(Icons.save_outlined),
                         label: Text(
                           _saving
-                              ? 'Saving...'
-                              : 'Save Profile',
+                              ? _t('Saving...', 'محفوظ ٿي رهيو آهي...', 'محفوظ ہو رہا ہے...')
+                              : _t('Save Profile', 'پروفائل محفوظ ڪريو', 'پروفائل محفوظ کریں'),
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        style:
-                            ElevatedButton.styleFrom(
-                          backgroundColor:
-                              const Color(0xFF6D4228),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF6D4228),
                           foregroundColor: Colors.white,
-                          disabledBackgroundColor:
-                              const Color(0xFF9E806B),
-                          shape:
-                              RoundedRectangleBorder(
-                            borderRadius:
-                                BorderRadius.circular(16),
+                          disabledBackgroundColor: const Color(0xFF9E806B),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
                           ),
                         ),
                       ),
@@ -791,37 +646,24 @@ class _ProfilePageState extends State<ProfilePage> {
                   ],
 
                   const SizedBox(height: 18),
-
-                  // Change Password
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton.icon(
-                      onPressed:
-                          _showChangePasswordDialog,
-                      icon: const Icon(
-                        Icons.lock_reset,
-                      ),
-                      label: const Text(
-                        'Change Password',
+                      onPressed: _showChangePasswordDialog,
+                      icon: const Icon(Icons.lock_reset),
+                      label: Text(
+                        _t('Change Password', 'پاسورڊ تبديل ڪريو', 'پاس ورڈ تبدیل کریں'),
                       ),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor:
-                            const Color(0xFF6D4228),
-                        side: const BorderSide(
-                          color: Color(0xFF6D4228),
-                        ),
-                        padding:
-                            const EdgeInsets.symmetric(
-                          vertical: 14,
-                        ),
+                        foregroundColor: const Color(0xFF6D4228),
+                        side: const BorderSide(color: Color(0xFF6D4228)),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(16),
                         ),
                       ),
                     ),
                   ),
-
                   const SizedBox(height: 25),
                 ],
               ),
