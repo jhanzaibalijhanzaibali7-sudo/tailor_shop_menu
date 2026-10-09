@@ -1,16 +1,45 @@
 import 'dart:typed_data';
-import '../app.dart';
+
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
+import '../app.dart';
 import '../data/db.dart';
 import '../data/models.dart';
 import '../data/photo_store.dart';
 import '../settings.dart';
 import 'common.dart';
+
+const Color _measurementBrown = Color(0xFF6B4F3A);
+const Color _measurementDarkBrown = Color(0xFF4E342E);
+const Color _measurementCream = Color(0xFFF5EDE3);
+const Color _measurementSoftBrown = Color(0xFFE8D8C8);
+
+IconData _measurementIcon(String field) {
+  switch (field) {
+    case 'chest':
+      return Icons.accessibility_new_rounded;
+    case 'waist':
+      return Icons.straighten_rounded;
+    case 'shalwar':
+      return Icons.checkroom_rounded;
+    case 'bazu':
+      return Icons.fitness_center_rounded;
+    case 'kameez':
+      return Icons.checkroom_outlined;
+    case 'shoulder':
+      return Icons.accessibility_rounded;
+    case 'neck':
+      return Icons.person_outline_rounded;
+    case 'notes':
+      return Icons.notes_rounded;
+    default:
+      return Icons.straighten_rounded;
+  }
+}
 
 /// Saved measurements of one customer (newest first) + add / edit.
 class MeasurementsPage extends StatefulWidget {
@@ -137,8 +166,7 @@ class _MeasurementsPageState extends State<MeasurementsPage> {
 
     final filled = kMeasurementFields
         .where(
-          (field) =>
-              (measurement.values[field] ?? '').trim().isNotEmpty,
+          (field) => (measurement.values[field] ?? '').trim().isNotEmpty,
         )
         .toList();
 
@@ -225,15 +253,11 @@ class _MeasurementsPageState extends State<MeasurementsPage> {
                         children: [
                           pw.Padding(
                             padding: const pw.EdgeInsets.all(7),
-                            child: pw.Text(
-                              measurementLabel(field, 'en'),
-                            ),
+                            child: pw.Text(measurementLabel(field, 'en')),
                           ),
                           pw.Padding(
                             padding: const pw.EdgeInsets.all(7),
-                            child: pw.Text(
-                              measurement.values[field] ?? '',
-                            ),
+                            child: pw.Text(measurement.values[field] ?? ''),
                           ),
                         ],
                       ),
@@ -293,36 +317,69 @@ class _MeasurementsPageState extends State<MeasurementsPage> {
     final s = AppScope.of(context);
 
     return Scaffold(
+      backgroundColor: _measurementCream,
       appBar: AppBar(
+        backgroundColor: _measurementCream,
+        foregroundColor: _measurementDarkBrown,
+        elevation: 0,
         title: Text(
           '${widget.customer.name} - '
           '${s.t('Measurements', 'ماپ', 'پیمائش')}',
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(
+              child: CircularProgressIndicator(color: _measurementBrown),
+            )
           : _items.isEmpty
               ? Center(
                   child: Padding(
                     padding: const EdgeInsets.all(32),
-                    child: Text(
-                      s.t(
-                        'No measurements yet. Tap "Add" to save one.',
-                        'اڃا ڪا ماپ ناهي. محفوظ ڪرڻ لاءِ "شامل ڪريو" دٻايو.',
-                        'ابھی کوئی پیمائش نہیں۔ محفوظ کرنے کے لیے "شامل کریں" دبائیں۔',
-                      ),
-                      textAlign: TextAlign.center,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 88,
+                          height: 88,
+                          decoration: const BoxDecoration(
+                            color: _measurementSoftBrown,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.straighten_rounded,
+                            size: 44,
+                            color: _measurementBrown,
+                          ),
+                        ),
+                        const SizedBox(height: 18),
+                        Text(
+                          s.t(
+                            'No measurements yet. Tap "Add" to save one.',
+                            'اڃا ڪا ماپ ناهي. محفوظ ڪرڻ لاءِ "شامل ڪريو" دٻايو.',
+                            'ابھی کوئی پیمائش نہیں۔ محفوظ کرنے کے لیے "شامل کریں" دبائیں۔',
+                          ),
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: _measurementDarkBrown,
+                            fontSize: 15,
+                            height: 1.5,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 )
               : ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(10, 10, 10, 90),
+                  padding: const EdgeInsets.fromLTRB(14, 12, 14, 100),
                   itemCount: _items.length,
                   itemBuilder: (_, index) => _card(s, _items[index]),
                 ),
       floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: _measurementBrown,
+        foregroundColor: Colors.white,
         onPressed: () => _edit(),
-        icon: const Icon(Icons.add),
+        icon: const Icon(Icons.add_rounded),
         label: Text(s.t('Add', 'شامل ڪريو', 'شامل کریں')),
       ),
     );
@@ -331,75 +388,202 @@ class _MeasurementsPageState extends State<MeasurementsPage> {
   Widget _card(AppSettings s, MeasurementRecord measurement) {
     final filled = kMeasurementFields
         .where(
-          (field) =>
-              (measurement.values[field] ?? '').trim().isNotEmpty,
+          (field) => (measurement.values[field] ?? '').trim().isNotEmpty,
         )
         .toList();
 
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+      color: Colors.white,
+      elevation: 2,
+      shadowColor: _measurementBrown.withValues(alpha: 0.10),
+      margin: const EdgeInsets.only(bottom: 16),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(22),
+        side: const BorderSide(color: _measurementSoftBrown),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: [
+          Container(
+            color: _measurementSoftBrown.withValues(alpha: 0.55),
+            padding: const EdgeInsets.fromLTRB(14, 8, 6, 8),
+            child: Row(
               children: [
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(13),
+                  ),
+                  child: const Icon(
+                    Icons.straighten_rounded,
+                    color: _measurementBrown,
+                  ),
+                ),
+                const SizedBox(width: 10),
                 Expanded(
-                  child: Text(
-                    fmtDate(measurement.createdAt),
-                    style: Theme.of(context).textTheme.labelLarge,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        s.t('Measurement Record', 'ماپ جو رڪارڊ', 'پیمائش کا ریکارڈ'),
+                        style: const TextStyle(
+                          color: _measurementDarkBrown,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        fmtDate(measurement.createdAt),
+                        style: TextStyle(
+                          color: _measurementDarkBrown.withValues(alpha: 0.75),
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 IconButton(
                   tooltip: s.t('Edit', 'تبديل ڪريو', 'ترمیم کریں'),
-                  icon: const Icon(Icons.edit),
                   onPressed: () => _edit(measurement),
+                  icon: const Icon(Icons.edit_outlined),
+                  color: _measurementBrown,
                 ),
                 IconButton(
                   tooltip: s.t('Print', 'پرنٽ', 'پرنٹ'),
-                  icon: const Icon(Icons.print),
                   onPressed: () => _printMeasurement(measurement),
+                  icon: const Icon(Icons.print_outlined),
+                  color: _measurementBrown,
                 ),
                 IconButton(
                   tooltip: s.t('Delete', 'ڊيليٽ', 'حذف کریں'),
-                  icon: const Icon(Icons.delete_outline),
                   onPressed: () => _delete(measurement),
+                  icon: const Icon(Icons.delete_outline_rounded),
+                  color: Colors.red.shade700,
                 ),
               ],
             ),
-            if (filled.isEmpty && measurement.photo == null)
-              Text(
-                s.t(
-                  'Empty measurement',
-                  'خالي ماپ',
-                  'خالی پیمائش',
-                ),
-              ),
-            for (final field in filled)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 2),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(
-                      width: 100,
-                      child: Text(
-                        measurementLabel(field, s.language),
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                        ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              children: [
+                if (filled.isEmpty && measurement.photo == null)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    child: Text(
+                      s.t(
+                        'Empty measurement',
+                        'خالي ماپ',
+                        'خالی پیمائش',
+                      ),
+                      style: const TextStyle(color: Colors.black54),
+                    ),
+                  ),
+                for (var i = 0; i < filled.length; i++)
+                  _measurementValueRow(
+                    field: filled[i],
+                    value: measurement.values[filled[i]]!,
+                    language: s.language,
+                    isLast: i == filled.length - 1,
+                  ),
+                if (measurement.photo != null) ...[
+                  const SizedBox(height: 12),
+                  Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: Text(
+                      s.t(
+                        'Measurement Photo',
+                        'ماپ جي تصوير',
+                        'پیمائش کی تصویر',
+                      ),
+                      style: const TextStyle(
+                        color: _measurementDarkBrown,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                    Expanded(
-                      child: Text(measurement.values[field]!),
-                    ),
-                  ],
+                  ),
+                  const SizedBox(height: 8),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(14),
+                    child: StoredPhoto(stored: measurement.photo!),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _measurementValueRow({
+    required String field,
+    required String value,
+    required String language,
+    required bool isLast,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        decoration: BoxDecoration(
+          color: _measurementCream.withValues(alpha: 0.75),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: _measurementSoftBrown.withValues(alpha: 0.75),
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: _measurementSoftBrown.withValues(alpha: 0.8),
+                borderRadius: BorderRadius.circular(11),
+              ),
+              child: Icon(
+                _measurementIcon(field),
+                color: _measurementBrown,
+                size: 21,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                measurementLabel(field, language),
+                style: const TextStyle(
+                  color: _measurementDarkBrown,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
                 ),
               ),
-            if (measurement.photo != null) ...[
-              const SizedBox(height: 8),
-              StoredPhoto(stored: measurement.photo!),
-            ],
+            ),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 7,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  value,
+                  textAlign: TextAlign.end,
+                  style: const TextStyle(
+                    color: _measurementBrown,
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -419,8 +603,7 @@ class MeasurementFormPage extends StatefulWidget {
   });
 
   @override
-  State<MeasurementFormPage> createState() =>
-      _MeasurementFormPageState();
+  State<MeasurementFormPage> createState() => _MeasurementFormPageState();
 }
 
 class _MeasurementFormPageState extends State<MeasurementFormPage> {
@@ -568,78 +751,240 @@ class _MeasurementFormPageState extends State<MeasurementFormPage> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final s = AppScope.of(context);
+  Widget _buildField(String field, AppSettings s) {
+    final isNotes = field == 'notes';
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          widget.existing == null
-              ? s.t('New Measurement', 'نئين ماپ', 'نئی پیمائش')
-              : s.t(
-                  'Edit Measurement',
-                  'ماپ تبديل ڪريو',
-                  'پیمائش میں ترمیم',
-                ),
-        ),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 13),
+      padding: const EdgeInsets.fromLTRB(13, 5, 13, 7),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(17),
+        border: Border.all(color: _measurementSoftBrown),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
+      child: Row(
+        crossAxisAlignment: isNotes
+            ? CrossAxisAlignment.start
+            : CrossAxisAlignment.center,
         children: [
-          Text(
-            widget.customer.name,
-            style: Theme.of(context).textTheme.titleMedium,
+          Container(
+            width: 43,
+            height: 43,
+            margin: EdgeInsets.only(top: isNotes ? 10 : 0),
+            decoration: BoxDecoration(
+              color: _measurementCream,
+              borderRadius: BorderRadius.circular(13),
+            ),
+            child: Icon(
+              _measurementIcon(field),
+              color: _measurementBrown,
+              size: 23,
+            ),
           ),
-          const SizedBox(height: 12),
-          for (final field in kMeasurementFields)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: TextField(
-                controller: _ctrls[field],
-                keyboardType: field == 'notes'
-                    ? TextInputType.multiline
-                    : TextInputType.text,
-                maxLines: field == 'notes' ? 3 : 1,
-                decoration: InputDecoration(
-                  labelText: measurementLabel(field, s.language),
-                  border: const OutlineInputBorder(),
+          const SizedBox(width: 12),
+          Expanded(
+            child: TextField(
+              controller: _ctrls[field],
+              keyboardType: isNotes
+                  ? TextInputType.multiline
+                  : TextInputType.text,
+              maxLines: isNotes ? 3 : 1,
+              textInputAction:
+                  isNotes ? TextInputAction.newline : TextInputAction.next,
+              decoration: InputDecoration(
+                labelText: measurementLabel(field, s.language),
+                hintText: isNotes
+                    ? s.t(
+                        'Add any extra details',
+                        'وڌيڪ تفصيل لکو',
+                        'مزید تفصیل لکھیں',
+                      )
+                    : s.t(
+                        'Enter measurement',
+                        'ماپ لکو',
+                        'پیمائش درج کریں',
+                      ),
+                border: InputBorder.none,
+                labelStyle: const TextStyle(
+                  color: _measurementBrown,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = AppScope.of(context);
+    final isEditing = widget.existing != null;
+
+    return Scaffold(
+      backgroundColor: _measurementCream,
+      appBar: AppBar(
+        backgroundColor: _measurementCream,
+        foregroundColor: _measurementDarkBrown,
+        elevation: 0,
+        title: Text(
+          isEditing
+              ? s.t(
+                  'Edit Measurement',
+                  'ماپ تبديل ڪريو',
+                  'پیمائش میں ترمیم',
+                )
+              : s.t('New Measurement', 'نئين ماپ', 'نئی پیمائش'),
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: _measurementBrown,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.16),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Icon(
+                    Icons.person_outline_rounded,
+                    color: Colors.white,
+                    size: 29,
+                  ),
+                ),
+                const SizedBox(width: 13),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        s.t('Customer', 'گراهڪ', 'گاہک'),
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.8),
+                          fontSize: 12,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        widget.customer.name,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 22),
+          Text(
+            s.t('Body Measurements', 'جسم جون ماپون', 'جسم کی پیمائش'),
+            style: const TextStyle(
+              fontSize: 17,
+              color: _measurementDarkBrown,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 5),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 15),
+            child: Text(
+              s.t(
+                'Enter the values for this customer.',
+                'هن گراهڪ جون ماپون لکو.',
+                'اس گاہک کی پیمائش درج کریں۔',
+              ),
+              style: TextStyle(
+                color: _measurementDarkBrown.withValues(alpha: 0.7),
+                fontSize: 13,
+              ),
+            ),
+          ),
+          for (final field in kMeasurementFields) _buildField(field, s),
+          const SizedBox(height: 5),
+          Text(
+            s.t('Measurement Photo', 'ماپ جي تصوير', 'پیمائش کی تصویر'),
+            style: const TextStyle(
+              fontSize: 17,
+              color: _measurementDarkBrown,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 5),
+          Text(
+            s.t(
+              'Optional: attach a photo of the measurement book.',
+              'اختياري: ماپ واري ڪتاب جي تصوير شامل ڪريو.',
+              'اختیاری: پیمائش والی کتاب کی تصویر شامل کریں۔',
+            ),
+            style: TextStyle(
+              color: _measurementDarkBrown.withValues(alpha: 0.7),
+              fontSize: 13,
+            ),
+          ),
+          const SizedBox(height: 12),
           Row(
             children: [
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: () => _pick(ImageSource.camera),
-                  icon: const Icon(Icons.camera_alt),
-                  label: Text(
-                    s.t('Camera', 'ڪئميرا', 'کیمرہ'),
+                  onPressed: _saving ? null : () => _pick(ImageSource.camera),
+                  icon: const Icon(Icons.camera_alt_outlined),
+                  label: Text(s.t('Camera', 'ڪئميرا', 'کیمرہ')),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: _measurementBrown,
+                    side: const BorderSide(color: _measurementBrown),
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 10),
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: () => _pick(ImageSource.gallery),
-                  icon: const Icon(Icons.photo_library),
-                  label: Text(
-                    s.t('Gallery', 'گيلري', 'گیلری'),
+                  onPressed: _saving ? null : () => _pick(ImageSource.gallery),
+                  icon: const Icon(Icons.photo_library_outlined),
+                  label: Text(s.t('Gallery', 'گيلري', 'گیلری')),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: _measurementBrown,
+                    side: const BorderSide(color: _measurementBrown),
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
                   ),
                 ),
               ),
             ],
           ),
           if (_photo != null) ...[
-            const SizedBox(height: 12),
-            StoredPhoto(
-              stored: _photo!,
-              height: 220,
+            const SizedBox(height: 14),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: StoredPhoto(
+                stored: _photo!,
+                height: 220,
+              ),
             ),
             Align(
               alignment: AlignmentDirectional.centerEnd,
               child: TextButton.icon(
-                onPressed: _removePhoto,
+                onPressed: _saving ? null : _removePhoto,
                 icon: const Icon(Icons.delete_outline),
                 label: Text(
                   s.t(
@@ -648,25 +993,51 @@ class _MeasurementFormPageState extends State<MeasurementFormPage> {
                     'تصویر ہٹائیں',
                   ),
                 ),
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.red.shade700,
+                ),
               ),
             ),
           ],
-          const SizedBox(height: 14),
-          FilledButton.icon(
-            onPressed: _saving ? null : _save,
-            icon: const Icon(Icons.save),
-            label: Text(
-              _saving
-                  ? s.t(
-                      'Saving...',
-                      'محفوظ ٿي رهيو آهي...',
-                      'محفوظ ہو رہا ہے...',
+          const SizedBox(height: 18),
+          SizedBox(
+            height: 54,
+            child: FilledButton.icon(
+              onPressed: _saving ? null : _save,
+              style: FilledButton.styleFrom(
+                backgroundColor: _measurementBrown,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+              icon: _saving
+                  ? const SizedBox(
+                      width: 21,
+                      height: 21,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
                     )
-                  : s.t(
-                      'Save Measurement',
-                      'محفوظ ڪريو',
-                      'پیمائش محفوظ کریں',
-                    ),
+                  : const Icon(Icons.save_outlined),
+              label: Text(
+                _saving
+                    ? s.t(
+                        'Saving...',
+                        'محفوظ ٿي رهيو آهي...',
+                        'محفوظ ہو رہا ہے...',
+                      )
+                    : s.t(
+                        'Save Measurement',
+                        'محفوظ ڪريو',
+                        'پیمائش محفوظ کریں',
+                      ),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ),
         ],
