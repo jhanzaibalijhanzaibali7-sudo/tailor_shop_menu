@@ -1,3 +1,4 @@
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -31,8 +32,6 @@ class _SignupPageState extends State<SignupPage> {
   @override
   void initState() {
     super.initState();
-
-    // If opened after Sign Out, show Login mode directly.
     _isLogin = widget.showLogin;
   }
 
@@ -110,34 +109,81 @@ class _SignupPageState extends State<SignupPage> {
         case 'email-already-in-use':
           message = 'This Gmail is already registered. Please Login.';
           break;
-
         case 'invalid-email':
           message = 'Please enter a valid Gmail address.';
           break;
-
         case 'weak-password':
           message = 'Password is too weak. Use at least 6 characters.';
           break;
-
         case 'user-not-found':
           message = 'No account found with this Gmail.';
           break;
-
         case 'wrong-password':
         case 'invalid-credential':
           message = 'Gmail or password is incorrect.';
           break;
-
         case 'operation-not-allowed':
-          message = 'Email/Password sign-in is not enabled in Firebase.';
+          message =
+              'Email/Password sign-in is not enabled in Firebase.';
           break;
-
         case 'network-request-failed':
           message = 'Internet connection problem. Please try again.';
           break;
-
         default:
           message = e.message ?? 'Something went wrong. Please try again.';
+      }
+
+      _showMessage(message);
+    } catch (e) {
+      _showMessage('Something went wrong. Please try again.');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+        });
+      }
+    }
+  }
+
+  // Forgot Password: send a password-reset email using Firebase.
+  Future<void> _resetPassword() async {
+    final email = _emailController.text.trim();
+
+    if (email.isEmpty) {
+      _showMessage('Please enter your registered Gmail first.');
+      return;
+    }
+
+    setState(() {
+      _loading = true;
+    });
+
+    try {
+      await _auth.sendPasswordResetEmail(email: email);
+
+      _showMessage(
+        'If an account exists for this email, '
+        'a password reset link will be sent. Please check your inbox and spam folder.',
+      );
+    } on FirebaseAuthException catch (e) {
+      String message;
+
+      switch (e.code) {
+        case 'invalid-email':
+          message = 'Please enter a valid email address.';
+          break;
+        case 'too-many-requests':
+          message = 'Too many attempts. Please try again later.';
+          break;
+        case 'network-request-failed':
+          message = 'Internet connection problem. Please try again.';
+          break;
+        case 'operation-not-allowed':
+          message =
+              'Email/Password authentication is not enabled in Firebase.';
+          break;
+        default:
+          message = 'Could not send reset email. Please try again later.';
       }
 
       _showMessage(message);
@@ -271,6 +317,24 @@ class _SignupPageState extends State<SignupPage> {
                     ),
                   ),
 
+                  // Show Forgot Password only in Login mode.
+                  if (_isLogin)
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: _loading ? null : _resetPassword,
+                        style: TextButton.styleFrom(
+                          foregroundColor: const Color(0xFF7A4A2A),
+                        ),
+                        child: const Text(
+                          'Forgot Password?',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+
                   if (!_isLogin) ...[
                     const SizedBox(height: 16),
 
@@ -321,9 +385,7 @@ class _SignupPageState extends State<SignupPage> {
                               ),
                             )
                           : Text(
-                              _isLogin
-                                  ? 'Login'
-                                  : 'Create Account',
+                              _isLogin ? 'Login' : 'Create Account',
                               style: const TextStyle(
                                 fontSize: 17,
                                 fontWeight: FontWeight.bold,
@@ -353,7 +415,6 @@ class _SignupPageState extends State<SignupPage> {
                             : () {
                                 setState(() {
                                   _isLogin = !_isLogin;
-
                                   _passwordController.clear();
                                   _confirmPasswordController.clear();
                                 });
@@ -420,5 +481,3 @@ class _SignupPageState extends State<SignupPage> {
     );
   }
 }
-
-     
