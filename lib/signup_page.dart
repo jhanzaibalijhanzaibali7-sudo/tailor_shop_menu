@@ -2,6 +2,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import 'app.dart';
 import 'welcome_page.dart';
 
 class SignupPage extends StatefulWidget {
@@ -29,6 +30,10 @@ class _SignupPageState extends State<SignupPage> {
   bool _showPassword = false;
   bool _showConfirmPassword = false;
 
+  String _t(String en, String sd, [String? ur]) {
+    return AppScope.of(context).t(en, sd, ur);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -51,33 +56,51 @@ class _SignupPageState extends State<SignupPage> {
     final confirmPassword = _confirmPasswordController.text.trim();
 
     if (!_isLogin && name.isEmpty) {
-      _showMessage('Please enter your name.');
+      _showMessage(_t(
+        'Please enter your name.',
+        'مهرباني ڪري پنهنجو نالو لکو.',
+        'براہ کرم اپنا نام درج کریں۔',
+      ));
       return;
     }
 
     if (email.isEmpty) {
-      _showMessage('Please enter your Gmail.');
+      _showMessage(_t(
+        'Please enter your email.',
+        'مهرباني ڪري پنهنجو اي ميل لکو.',
+        'براہ کرم اپنا ای میل درج کریں۔',
+      ));
       return;
     }
 
     if (password.isEmpty) {
-      _showMessage('Please enter your password.');
+      _showMessage(_t(
+        'Please enter your password.',
+        'مهرباني ڪري پنهنجو پاسورڊ لکو.',
+        'براہ کرم اپنا پاس ورڈ درج کریں۔',
+      ));
       return;
     }
 
     if (!_isLogin && password != confirmPassword) {
-      _showMessage('Passwords do not match.');
+      _showMessage(_t(
+        'Passwords do not match.',
+        'پاسورڊ هڪجهڙا ناهن.',
+        'دونوں پاس ورڈ ایک جیسے نہیں ہیں۔',
+      ));
       return;
     }
 
     if (password.length < 6) {
-      _showMessage('Password must be at least 6 characters.');
+      _showMessage(_t(
+        'Password must be at least 6 characters.',
+        'پاسورڊ گهٽ ۾ گهٽ 6 اکرن جو هجڻ گهرجي.',
+        'پاس ورڈ کم از کم 6 حروف کا ہونا چاہیے۔',
+      ));
       return;
     }
 
-    setState(() {
-      _loading = true;
-    });
+    setState(() => _loading = true);
 
     try {
       if (_isLogin) {
@@ -107,93 +130,142 @@ class _SignupPageState extends State<SignupPage> {
 
       switch (e.code) {
         case 'email-already-in-use':
-          message = 'This Gmail is already registered. Please Login.';
+          message = _t(
+            'This email is already registered. Please Login.',
+            'هي اي ميل اڳ ۾ رجسٽر ٿيل آهي. لاگ ان ڪريو.',
+            'یہ ای میل پہلے سے رجسٹر ہے۔ براہ کرم لاگ اِن کریں۔',
+          );
           break;
         case 'invalid-email':
-          message = 'Please enter a valid Gmail address.';
+          message = _t(
+            'Please enter a valid email address.',
+            'صحيح اي ميل پتو لکو.',
+            'براہ کرم درست ای میل ایڈریس درج کریں۔',
+          );
           break;
         case 'weak-password':
-          message = 'Password is too weak. Use at least 6 characters.';
+          message = _t(
+            'Password is too weak. Use at least 6 characters.',
+            'پاسورڊ ڪمزور آهي. گهٽ ۾ گهٽ 6 اکر استعمال ڪريو.',
+            'پاس ورڈ کمزور ہے۔ کم از کم 6 حروف استعمال کریں۔',
+          );
           break;
         case 'user-not-found':
-          message = 'No account found with this Gmail.';
+          message = _t(
+            'No account found with this email.',
+            'هن اي ميل سان ڪو اڪائونٽ نه مليو.',
+            'اس ای میل سے کوئی اکاؤنٹ نہیں ملا۔',
+          );
           break;
         case 'wrong-password':
         case 'invalid-credential':
-          message = 'Gmail or password is incorrect.';
+          message = _t(
+            'Email or password is incorrect.',
+            'اي ميل يا پاسورڊ غلط آهي.',
+            'ای میل یا پاس ورڈ غلط ہے۔',
+          );
           break;
         case 'operation-not-allowed':
-          message =
-              'Email/Password sign-in is not enabled in Firebase.';
+          message = _t(
+            'Email/Password sign-in is not enabled in Firebase.',
+            'Firebase ۾ اي ميل لاگ ان فعال ناهي.',
+            'Firebase میں ای میل لاگ اِن فعال نہیں ہے۔',
+          );
           break;
         case 'network-request-failed':
-          message = 'Internet connection problem. Please try again.';
+          message = _t(
+            'Internet connection problem. Please try again.',
+            'انٽرنيٽ جو مسئلو آهي. ٻيهر ڪوشش ڪريو.',
+            'انٹرنیٹ کا مسئلہ ہے۔ دوبارہ کوشش کریں۔',
+          );
           break;
         default:
-          message = e.message ?? 'Something went wrong. Please try again.';
+          message = _t(
+            'Something went wrong. Please try again.',
+            'ڪجهه مسئلو ٿيو. ٻيهر ڪوشش ڪريو.',
+            'کچھ مسئلہ پیش آیا۔ دوبارہ کوشش کریں۔',
+          );
       }
 
       _showMessage(message);
-    } catch (e) {
-      _showMessage('Something went wrong. Please try again.');
+    } catch (_) {
+      _showMessage(_t(
+        'Something went wrong. Please try again.',
+        'ڪجهه مسئلو ٿيو. ٻيهر ڪوشش ڪريو.',
+        'کچھ مسئلہ پیش آیا۔ دوبارہ کوشش کریں۔',
+      ));
     } finally {
       if (mounted) {
-        setState(() {
-          _loading = false;
-        });
+        setState(() => _loading = false);
       }
     }
   }
 
-  // Forgot Password: send a password-reset email using Firebase.
   Future<void> _resetPassword() async {
     final email = _emailController.text.trim();
 
     if (email.isEmpty) {
-      _showMessage('Please enter your registered Gmail first.');
+      _showMessage(_t(
+        'Enter your registered email first.',
+        'پهريان پنهنجو رجسٽر ٿيل اي ميل لکو.',
+        'پہلے اپنا رجسٹرڈ ای میل درج کریں۔',
+      ));
       return;
     }
 
-    setState(() {
-      _loading = true;
-    });
+    setState(() => _loading = true);
 
     try {
       await _auth.sendPasswordResetEmail(email: email);
 
-      _showMessage(
-        'If an account exists for this email, '
-        'a password reset link will be sent. Please check your inbox and spam folder.',
-      );
+      _showMessage(_t(
+        'If an account exists for this email, a reset link will be sent. Check your inbox and spam folder.',
+        'جيڪڏهن هن اي ميل سان اڪائونٽ موجود آهي ته پاسورڊ ري سيٽ لنڪ موڪليو ويندو. انباڪس ۽ اسپام فولڊر ڏسو.',
+        'اگر اس ای میل سے اکاؤنٹ موجود ہے تو پاس ورڈ ری سیٹ لنک بھیجا جائے گا۔ اپنا اِن باکس اور اسپیم فولڈر دیکھیں۔',
+      ));
     } on FirebaseAuthException catch (e) {
       String message;
 
       switch (e.code) {
         case 'invalid-email':
-          message = 'Please enter a valid email address.';
+          message = _t(
+            'Please enter a valid email address.',
+            'صحيح اي ميل پتو لکو.',
+            'براہ کرم درست ای میل ایڈریس درج کریں۔',
+          );
           break;
         case 'too-many-requests':
-          message = 'Too many attempts. Please try again later.';
+          message = _t(
+            'Too many attempts. Please try again later.',
+            'گهڻيون ڪوششون ٿي چڪيون آهن. پوءِ ڪوشش ڪريو.',
+            'بہت زیادہ کوششیں ہو چکی ہیں۔ کچھ دیر بعد دوبارہ کوشش کریں۔',
+          );
           break;
         case 'network-request-failed':
-          message = 'Internet connection problem. Please try again.';
-          break;
-        case 'operation-not-allowed':
-          message =
-              'Email/Password authentication is not enabled in Firebase.';
+          message = _t(
+            'Internet connection problem. Please try again.',
+            'انٽرنيٽ جو مسئلو آهي. ٻيهر ڪوشش ڪريو.',
+            'انٹرنیٹ کا مسئلہ ہے۔ دوبارہ کوشش کریں۔',
+          );
           break;
         default:
-          message = 'Could not send reset email. Please try again later.';
+          message = _t(
+            'Could not send reset email. Please try again later.',
+            'ري سيٽ اي ميل نه موڪلي سگهيس. پوءِ ڪوشش ڪريو.',
+            'ری سیٹ ای میل نہیں بھیجی جا سکی۔ کچھ دیر بعد دوبارہ کوشش کریں۔',
+          );
       }
 
       _showMessage(message);
-    } catch (e) {
-      _showMessage('Something went wrong. Please try again.');
+    } catch (_) {
+      _showMessage(_t(
+        'Something went wrong. Please try again.',
+        'ڪجهه مسئلو ٿيو. ٻيهر ڪوشش ڪريو.',
+        'کچھ مسئلہ پیش آیا۔ دوبارہ کوشش کریں۔',
+      ));
     } finally {
       if (mounted) {
-        setState(() {
-          _loading = false;
-        });
+        setState(() => _loading = false);
       }
     }
   }
@@ -205,236 +277,6 @@ class _SignupPageState extends State<SignupPage> {
       SnackBar(
         content: Text(message),
         behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final title = _isLogin ? 'Welcome Back' : 'Create Your Account';
-
-    final subtitle = _isLogin
-        ? 'Login to continue to Tailor Shop'
-        : 'Create your account to get started';
-
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8F1E7),
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 24,
-              vertical: 30,
-            ),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 430),
-              child: Column(
-                children: [
-                  Container(
-                    width: 100,
-                    height: 100,
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.brown.withOpacity(0.15),
-                          blurRadius: 18,
-                          offset: const Offset(0, 8),
-                        ),
-                      ],
-                    ),
-                    child: Image.asset(
-                      'logo.png',
-                      fit: BoxFit.contain,
-                    ),
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  Text(
-                    title,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 29,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF6D4228),
-                    ),
-                  ),
-
-                  const SizedBox(height: 8),
-
-                  Text(
-                    subtitle,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 15,
-                      color: Colors.brown.shade400,
-                    ),
-                  ),
-
-                  const SizedBox(height: 30),
-
-                  if (!_isLogin) ...[
-                    _buildTextField(
-                      controller: _nameController,
-                      label: 'Full Name',
-                      hint: 'Enter your name',
-                      icon: Icons.person_outline,
-                      textInputType: TextInputType.name,
-                    ),
-                    const SizedBox(height: 16),
-                  ],
-
-                  _buildTextField(
-                    controller: _emailController,
-                    label: 'Gmail',
-                    hint: 'Enter your Gmail',
-                    icon: Icons.email_outlined,
-                    textInputType: TextInputType.emailAddress,
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  _buildTextField(
-                    controller: _passwordController,
-                    label: 'Password',
-                    hint: 'Enter your password',
-                    icon: Icons.lock_outline,
-                    obscureText: !_showPassword,
-                    suffixIcon: IconButton(
-                      onPressed: () {
-                        setState(() {
-                          _showPassword = !_showPassword;
-                        });
-                      },
-                      icon: Icon(
-                        _showPassword
-                            ? Icons.visibility_off_outlined
-                            : Icons.visibility_outlined,
-                      ),
-                    ),
-                  ),
-
-                  // Show Forgot Password only in Login mode.
-                  if (_isLogin)
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton(
-                        onPressed: _loading ? null : _resetPassword,
-                        style: TextButton.styleFrom(
-                          foregroundColor: const Color(0xFF7A4A2A),
-                        ),
-                        child: const Text(
-                          'Forgot Password?',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-
-                  if (!_isLogin) ...[
-                    const SizedBox(height: 16),
-
-                    _buildTextField(
-                      controller: _confirmPasswordController,
-                      label: 'Confirm Password',
-                      hint: 'Enter password again',
-                      icon: Icons.lock_reset_outlined,
-                      obscureText: !_showConfirmPassword,
-                      suffixIcon: IconButton(
-                        onPressed: () {
-                          setState(() {
-                            _showConfirmPassword =
-                                !_showConfirmPassword;
-                          });
-                        },
-                        icon: Icon(
-                          _showConfirmPassword
-                              ? Icons.visibility_off_outlined
-                              : Icons.visibility_outlined,
-                        ),
-                      ),
-                    ),
-                  ],
-
-                  const SizedBox(height: 28),
-
-                  SizedBox(
-                    width: double.infinity,
-                    height: 54,
-                    child: ElevatedButton(
-                      onPressed: _loading ? null : _submit,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF7A4A2A),
-                        foregroundColor: Colors.white,
-                        elevation: 3,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                      ),
-                      child: _loading
-                          ? const SizedBox(
-                              width: 24,
-                              height: 24,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2.5,
-                                color: Colors.white,
-                              ),
-                            )
-                          : Text(
-                              _isLogin ? 'Login' : 'Create Account',
-                              style: const TextStyle(
-                                fontSize: 17,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 22),
-
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        _isLogin
-                            ? "Don't have an account? "
-                            : 'Already have an account? ',
-                        style: TextStyle(
-                          color: Colors.brown.shade600,
-                          fontSize: 14,
-                        ),
-                      ),
-
-                      GestureDetector(
-                        onTap: _loading
-                            ? null
-                            : () {
-                                setState(() {
-                                  _isLogin = !_isLogin;
-                                  _passwordController.clear();
-                                  _confirmPasswordController.clear();
-                                });
-                              },
-                        child: Text(
-                          _isLogin ? 'Create Account' : 'Login',
-                          style: const TextStyle(
-                            color: Color(0xFF7A4A2A),
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
       ),
     );
   }
@@ -475,6 +317,281 @@ class _SignupPageState extends State<SignupPage> {
           borderSide: const BorderSide(
             color: Color(0xFF7A4A2A),
             width: 1.5,
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final title = _isLogin
+        ? _t('Welcome Back', 'واپس ڀليڪار', 'خوش آمدید')
+        : _t('Create Your Account', 'پنهنجو اڪائونٽ ٺاهيو', 'اپنا اکاؤنٹ بنائیں');
+
+    final subtitle = _isLogin
+        ? _t(
+            'Login to continue to Tailor Shop',
+            'Tailor Shop جاري رکڻ لاءِ لاگ ان ڪريو',
+            'Tailor Shop جاری رکھنے کے لیے لاگ اِن کریں',
+          )
+        : _t(
+            'Create your account to get started',
+            'شروع ڪرڻ لاءِ پنهنجو اڪائونٽ ٺاهيو',
+            'شروع کرنے کے لیے اپنا اکاؤنٹ بنائیں',
+          );
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8F1E7),
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 24,
+              vertical: 30,
+            ),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 430),
+              child: Column(
+                children: [
+                  Container(
+                    width: 100,
+                    height: 100,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.brown.withOpacity(0.15),
+                          blurRadius: 18,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: Image.asset(
+                      'logo.png',
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    title,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 29,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF6D4228),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    subtitle,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: Colors.brown.shade400,
+                    ),
+                  ),
+                  const SizedBox(height: 30),
+
+                  if (!_isLogin) ...[
+                    _buildTextField(
+                      controller: _nameController,
+                      label: _t('Full Name', 'پورو نالو', 'پورا نام'),
+                      hint: _t(
+                        'Enter your name',
+                        'پنهنجو نالو لکو',
+                        'اپنا نام درج کریں',
+                      ),
+                      icon: Icons.person_outline,
+                      textInputType: TextInputType.name,
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+
+                  _buildTextField(
+                    controller: _emailController,
+                    label: _t('Email', 'اي ميل', 'ای میل'),
+                    hint: _t(
+                      'Enter your email',
+                      'پنهنجو اي ميل لکو',
+                      'اپنا ای میل درج کریں',
+                    ),
+                    icon: Icons.email_outlined,
+                    textInputType: TextInputType.emailAddress,
+                  ),
+                  const SizedBox(height: 16),
+
+                  _buildTextField(
+                    controller: _passwordController,
+                    label: _t('Password', 'پاسورڊ', 'پاس ورڈ'),
+                    hint: _t(
+                      'Enter your password',
+                      'پنهنجو پاسورڊ لکو',
+                      'اپنا پاس ورڈ درج کریں',
+                    ),
+                    icon: Icons.lock_outline,
+                    obscureText: !_showPassword,
+                    suffixIcon: IconButton(
+                      onPressed: () {
+                        setState(() {
+                          _showPassword = !_showPassword;
+                        });
+                      },
+                      icon: Icon(
+                        _showPassword
+                            ? Icons.visibility_off_outlined
+                            : Icons.visibility_outlined,
+                      ),
+                    ),
+                  ),
+
+                  if (_isLogin)
+                    Align(
+                      alignment: AlignmentDirectional.centerEnd,
+                      child: TextButton(
+                        onPressed: _loading ? null : _resetPassword,
+                        style: TextButton.styleFrom(
+                          foregroundColor: const Color(0xFF7A4A2A),
+                        ),
+                        child: Text(
+                          _t(
+                            'Forgot Password?',
+                            'پاسورڊ وساري ويٺا؟',
+                            'پاس ورڈ بھول گئے؟',
+                          ),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                  if (!_isLogin) ...[
+                    const SizedBox(height: 16),
+                    _buildTextField(
+                      controller: _confirmPasswordController,
+                      label: _t(
+                        'Confirm Password',
+                        'پاسورڊ ٻيهر لکو',
+                        'پاس ورڈ کی تصدیق کریں',
+                      ),
+                      hint: _t(
+                        'Enter password again',
+                        'پاسورڊ ٻيهر لکو',
+                        'پاس ورڈ دوبارہ درج کریں',
+                      ),
+                      icon: Icons.lock_reset_outlined,
+                      obscureText: !_showConfirmPassword,
+                      suffixIcon: IconButton(
+                        onPressed: () {
+                          setState(() {
+                            _showConfirmPassword = !_showConfirmPassword;
+                          });
+                        },
+                        icon: Icon(
+                          _showConfirmPassword
+                              ? Icons.visibility_off_outlined
+                              : Icons.visibility_outlined,
+                        ),
+                      ),
+                    ),
+                  ],
+
+                  const SizedBox(height: 28),
+
+                  SizedBox(
+                    width: double.infinity,
+                    height: 54,
+                    child: ElevatedButton(
+                      onPressed: _loading ? null : _submit,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF7A4A2A),
+                        foregroundColor: Colors.white,
+                        elevation: 3,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      child: _loading
+                          ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.5,
+                                color: Colors.white,
+                              ),
+                            )
+                          : Text(
+                              _isLogin
+                                  ? _t('Login', 'لاگ ان', 'لاگ اِن')
+                                  : _t(
+                                      'Create Account',
+                                      'اڪائونٽ ٺاهيو',
+                                      'اکاؤنٹ بنائیں',
+                                    ),
+                              style: const TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 22),
+
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Text(
+                        _isLogin
+                            ? _t(
+                                "Don't have an account? ",
+                                'اڪائونٽ ناهي؟ ',
+                                'اکاؤنٹ نہیں ہے؟ ',
+                              )
+                            : _t(
+                                'Already have an account? ',
+                                'اڳ ۾ اڪائونٽ آهي؟ ',
+                                'پہلے سے اکاؤنٹ ہے؟ ',
+                              ),
+                        style: TextStyle(
+                          color: Colors.brown.shade600,
+                          fontSize: 14,
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: _loading
+                            ? null
+                            : () {
+                                setState(() {
+                                  _isLogin = !_isLogin;
+                                  _passwordController.clear();
+                                  _confirmPasswordController.clear();
+                                });
+                              },
+                        child: Text(
+                          _isLogin
+                              ? _t(
+                                  'Create Account',
+                                  'اڪائونٽ ٺاهيو',
+                                  'اکاؤنٹ بنائیں',
+                                )
+                              : _t('Login', 'لاگ ان', 'لاگ اِن'),
+                          style: const TextStyle(
+                            color: Color(0xFF7A4A2A),
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       ),
