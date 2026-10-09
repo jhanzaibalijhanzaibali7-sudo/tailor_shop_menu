@@ -34,6 +34,7 @@ class _MeasurementsPageState extends State<MeasurementsPage> {
 
   Future<void> _load() async {
     final rows = await DB.instance.measurementsFor(widget.customer.id);
+
     if (!mounted) return;
 
     setState(() {
@@ -135,8 +136,10 @@ class _MeasurementsPageState extends State<MeasurementsPage> {
     final pdf = pw.Document();
 
     final filled = kMeasurementFields
-        .where((field) =>
-            (measurement.values[field] ?? '').trim().isNotEmpty)
+        .where(
+          (field) =>
+              (measurement.values[field] ?? '').trim().isNotEmpty,
+        )
         .toList();
 
     pw.MemoryImage? photoImage;
@@ -223,7 +226,7 @@ class _MeasurementsPageState extends State<MeasurementsPage> {
                           pw.Padding(
                             padding: const pw.EdgeInsets.all(7),
                             child: pw.Text(
-                              measurementLabel(field, false),
+                              measurementLabel(field, 'en'),
                             ),
                           ),
                           pw.Padding(
@@ -327,8 +330,10 @@ class _MeasurementsPageState extends State<MeasurementsPage> {
 
   Widget _card(AppSettings s, MeasurementRecord measurement) {
     final filled = kMeasurementFields
-        .where((field) =>
-            (measurement.values[field] ?? '').trim().isNotEmpty)
+        .where(
+          (field) =>
+              (measurement.values[field] ?? '').trim().isNotEmpty,
+        )
         .toList();
 
     return Card(
@@ -379,7 +384,7 @@ class _MeasurementsPageState extends State<MeasurementsPage> {
                     SizedBox(
                       width: 100,
                       child: Text(
-                        measurementLabel(field, s.sindhi),
+                        measurementLabel(field, s.language),
                         style: const TextStyle(
                           fontWeight: FontWeight.w600,
                         ),
@@ -597,7 +602,7 @@ class _MeasurementFormPageState extends State<MeasurementFormPage> {
                     : TextInputType.text,
                 maxLines: field == 'notes' ? 3 : 1,
                 decoration: InputDecoration(
-                  labelText: measurementLabel(field, s.sindhi),
+                  labelText: measurementLabel(field, s.language),
                   border: const OutlineInputBorder(),
                 ),
               ),
@@ -637,7 +642,11 @@ class _MeasurementFormPageState extends State<MeasurementFormPage> {
                 onPressed: _removePhoto,
                 icon: const Icon(Icons.delete_outline),
                 label: Text(
-                  s.t('Remove photo', 'تصوير هٽايو', 'تصویر ہٹائیں'),
+                  s.t(
+                    'Remove photo',
+                    'تصوير هٽايو',
+                    'تصویر ہٹائیں',
+                  ),
                 ),
               ),
             ),
@@ -648,7 +657,11 @@ class _MeasurementFormPageState extends State<MeasurementFormPage> {
             icon: const Icon(Icons.save),
             label: Text(
               _saving
-                  ? s.t('Saving...', 'محفوظ ٿي رهيو آهي...', 'محفوظ ہو رہا ہے...')
+                  ? s.t(
+                      'Saving...',
+                      'محفوظ ٿي رهيو آهي...',
+                      'محفوظ ہو رہا ہے...',
+                    )
                   : s.t(
                       'Save Measurement',
                       'محفوظ ڪريو',
