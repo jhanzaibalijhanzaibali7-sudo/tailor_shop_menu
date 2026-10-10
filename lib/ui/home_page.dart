@@ -6,7 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
-
+import 'profile_page.dart';
 import '../app.dart';
 import '../data/backup_service.dart';
 import '../data/db.dart';
@@ -14,8 +14,6 @@ import '../data/models.dart';
 import '../settings.dart';
 import '../voice/command_parser.dart';
 import '../voice/voice_service.dart';
-import '../signup_page.dart';
-import 'profile_page.dart';
 import 'common.dart';
 import 'measurements_page.dart';
 import 'orders_page.dart';
@@ -229,12 +227,9 @@ class _HomePageState extends State<HomePage> {
 
       if (!mounted) return;
 
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute<void>(
-          builder: (_) => const SignupPage(),
-        ),
-        (route) => false,
-      );
+      // Return to the root route.
+      // AuthGate will show the login page after sign-out.
+      Navigator.of(context).popUntil((route) => route.isFirst);
     } catch (e) {
       if (mounted) {
         showSnack(
@@ -245,7 +240,6 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  // Voice commands
 
   Future<void> _listen({required bool commandMode}) async {
     if (_listening) {
