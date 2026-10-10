@@ -597,7 +597,7 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     final s = AppScope.of(context);
-
+   final isLoggedIn = FirebaseAuth.instance.currentUser != null;
     return Scaffold(
       backgroundColor: lightBrown,
       appBar: AppBar(
@@ -675,6 +675,8 @@ class _HomePageState extends State<HomePage> {
                     _showVoiceHelp();
                   case 'sign_out':
                     _signOut();
+                  case 'sign_in':
+  Navigator.of(context).popUntil((route) => route.isFirst);
                   case 'app_language':
                     _pickAppLanguage();
                 }
@@ -802,13 +804,18 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
                 const PopupMenuDivider(),
-                PopupMenuItem<String>(
-                  value: 'sign_out',
-                  child: _modernMenuItem(
-                    icon: Icons.logout_rounded,
-                    title: s.t('Sign Out', 'سائن آئوٽ', 'سائن آؤٹ'),
-                  ),
-                ),
+                 
+PopupMenuItem<String>(
+  value: isLoggedIn ? 'sign_out' : 'sign_in',
+  child: _modernMenuItem(
+    icon: isLoggedIn
+        ? Icons.logout_rounded
+        : Icons.login_rounded,
+    title: isLoggedIn
+        ? s.t('Sign Out', 'سائن آئوٽ', 'سائن آؤٹ')
+        : s.t('Sign In', 'سائن اِن', 'سائن اِن'),
+  ),
+),
               ],
             ),
           ),
