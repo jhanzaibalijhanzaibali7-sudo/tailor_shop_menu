@@ -673,12 +673,16 @@ class _HomePageState extends State<HomePage> {
                     _pickVoiceLanguage();
                   case 'voice_help':
                     _showVoiceHelp();
-                  case 'sign_out':
-                    _signOut();
-                  case 'sign_in':
-  Navigator.of(context).popUntil((route) => route.isFirst);
-                  case 'app_language':
-                    _pickAppLanguage();
+                   case 'sign_out':
+  _signOut();
+
+case 'sign_in':
+  Navigator.of(context).popUntil(
+    (route) => route.isFirst,
+  );
+
+case 'app_language':
+  _pickAppLanguage();
                 }
               },
               itemBuilder: (_) => [
