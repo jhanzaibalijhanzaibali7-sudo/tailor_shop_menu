@@ -3,7 +3,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import 'app.dart';
-import 'welcome_page.dart';
 
 class SignupPage extends StatefulWidget {
   const SignupPage({
@@ -118,13 +117,9 @@ class _SignupPageState extends State<SignupPage> {
         await credential.user?.reload();
       }
 
-      if (!mounted) return;
-
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (_) => const WelcomePage(),
-        ),
-      );
+      // AuthGate in app.dart detects the Firebase login state
+      // and automatically opens WelcomePage after database setup.
+      // Do not push WelcomePage manually here.
     } on FirebaseAuthException catch (e) {
       String message;
 
@@ -394,7 +389,6 @@ class _SignupPageState extends State<SignupPage> {
                     ),
                   ),
                   const SizedBox(height: 30),
-
                   if (!_isLogin) ...[
                     _buildTextField(
                       controller: _nameController,
@@ -409,7 +403,6 @@ class _SignupPageState extends State<SignupPage> {
                     ),
                     const SizedBox(height: 16),
                   ],
-
                   _buildTextField(
                     controller: _emailController,
                     label: _t('Email', 'اي ميل', 'ای میل'),
@@ -422,7 +415,6 @@ class _SignupPageState extends State<SignupPage> {
                     textInputType: TextInputType.emailAddress,
                   ),
                   const SizedBox(height: 16),
-
                   _buildTextField(
                     controller: _passwordController,
                     label: _t('Password', 'پاسورڊ', 'پاس ورڈ'),
@@ -446,7 +438,6 @@ class _SignupPageState extends State<SignupPage> {
                       ),
                     ),
                   ),
-
                   if (_isLogin)
                     Align(
                       alignment: AlignmentDirectional.centerEnd,
@@ -467,7 +458,6 @@ class _SignupPageState extends State<SignupPage> {
                         ),
                       ),
                     ),
-
                   if (!_isLogin) ...[
                     const SizedBox(height: 16),
                     _buildTextField(
@@ -498,9 +488,7 @@ class _SignupPageState extends State<SignupPage> {
                       ),
                     ),
                   ],
-
                   const SizedBox(height: 28),
-
                   SizedBox(
                     width: double.infinity,
                     height: 54,
@@ -538,9 +526,7 @@ class _SignupPageState extends State<SignupPage> {
                             ),
                     ),
                   ),
-
                   const SizedBox(height: 22),
-
                   Wrap(
                     alignment: WrapAlignment.center,
                     crossAxisAlignment: WrapCrossAlignment.center,
